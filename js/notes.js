@@ -26,8 +26,9 @@ const looseSection = n => (n.sections.find(s => s.name.trim() === '기타') || {
 let notePage = false; // 폰: 노트 안을 보는 중 (false면 목록)
 let editing = false;  // 편집 중: 이름 고치기·순서 바꾸기·지우기
 const currentNote = () => { const list = notes(); return list.find(n => n.id === prefs.note) || list[0] || null; };
-// 장보기 보기: need(살 것) / all(전체). 편집 중엔 전체
-const tabOf = n => (n.type === 'shop' && !editing ? (prefs.tab || {})[n.id] || 'need' : 'all');
+// 장보기 보기: need(살 것) / all(전체). 편집 중엔 전체. 고른 적 없으면 살 것이 있을 때만 '살 것'
+const tabOf = n => (n.type === 'shop' && !editing
+  ? (prefs.tab || {})[n.id] || (entriesOf(n).some(e => e.need) ? 'need' : 'all') : 'all');
 
 function openNote(n) {
   if (prefs.note !== n.id) editing = false;
@@ -311,6 +312,8 @@ function entryRow(n, e, mode) {
   li.append(h('span', shopAll ? 'mark' : 'check'), h('span', 'text', e.text));
   li.title = shopAll ? (e.need ? '눌러서 살 것에서 빼기' : '눌러서 살 것으로 표시') : '';
   li.addEventListener('click', () => {
+    // 전체에서 표시하는 중에 '살 것'으로 넘어가지 않게 지금 보기를 고정
+    if (shopAll && !(prefs.tab || {})[n.id]) { prefs.tab = { ...prefs.tab, [n.id]: 'all' }; savePrefs(); }
     if (shopAll) { e.need = !e.need; e.done = false; } else e.done = !e.done;
     touch(e);
     save();
