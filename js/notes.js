@@ -61,6 +61,7 @@ function renderNotes() {
   const out = list.filter(n => !noteCatOf(n)).map(n => noteRow(n, n === cur));
   for (const c of noteCats()) {
     const head = h('div', 'note-cat', c.name);
+    head.style.setProperty('--c', c.color); // 제목 음영 = 카테고리 색
     head.dataset.cat = c.id;
     out.push(head, ...list.filter(n => n.cat === c.id).map(n => noteRow(n, n === cur)));
   }
@@ -79,7 +80,7 @@ function noteRow(n, on) {
   row.dataset.id = n.id;
   row.style.setProperty('--c', noteColor(n));
   const handle = dragHandle();
-  row.append(h('span', 'dot'), h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)), handle);
+  row.append(handle, h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)));
   row.addEventListener('click', e => { if (!e.target.closest('.handle')) openNote(n); });
   // 다른 카테고리의 노트 위에 놓으면 그 카테고리로, 카테고리 제목에 놓으면 그 카테고리 맨 위로
   sortable(handle, row, '.note-row, .note-cat', (t, before) => {
