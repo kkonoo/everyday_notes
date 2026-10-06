@@ -193,6 +193,49 @@ function dragHandle() {
   return s;
 }
 
+// ---------- 식단·가계부: 오른쪽 패널 너비 ----------
+// 사이 경계(.splitter)를 끌어서 조절, 두 번 누르면 원래대로. prefs.sideW = { meals, budget } (캘린더x플래너와 같은 방식)
+function applySideW() {
+  for (const s of document.querySelectorAll('.splitter')) {
+    const w = (prefs.sideW || {})[s.dataset.split];
+    s.parentElement.style.setProperty('--side-w', w ? `${w}px` : '');
+  }
+}
+for (const s of document.querySelectorAll('.splitter')) {
+  const key = s.dataset.split;
+  s.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    e.preventDefault();
+    s.setPointerCapture(e.pointerId);
+    s.classList.add('active');
+    const move = ev => {
+      const box = s.parentElement.getBoundingClientRect(), right = box.right - 24; // 오른쪽 여백
+      const max = Math.max(300, (right - box.left - 24) * 0.6);
+      prefs.sideW = { ...prefs.sideW, [key]: Math.round(Math.min(Math.max(right - ev.clientX - 8, 260), max)) };
+      applySideW();
+    };
+    const up = () => {
+      s.classList.remove('active');
+      s.removeEventListener('pointermove', move);
+      s.removeEventListener('pointerup', up);
+      s.removeEventListener('pointercancel', up);
+      savePrefs();
+      render(); // 달력 칸·그래프를 바뀐 너비에 맞게
+    };
+    s.addEventListener('pointermove', move);
+    s.addEventListener('pointerup', up);
+    s.addEventListener('pointercancel', up);
+  });
+  s.addEventListener('dblclick', () => {
+    const w = { ...prefs.sideW };
+    delete w[key];
+    prefs.sideW = w;
+    savePrefs();
+    applySideW();
+    render();
+  });
+}
+
 // ---------- 설정 ----------
 function applyTheme() {
   if (prefs.theme) document.documentElement.dataset.theme = prefs.theme;
@@ -279,6 +322,7 @@ let resizeTimer;
 addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
 applyTheme();
 applyFont();
+applySideW();
 addEventListener('DOMContentLoaded', render); // notes.js·meals.js 까지 읽은 뒤 그리기
 
 // 앱 설치(PWA)·오프라인용. 파일을 더블클릭해서 연 경우(file://)엔 동작 안 함
