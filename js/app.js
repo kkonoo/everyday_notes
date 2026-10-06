@@ -1,5 +1,5 @@
 'use strict';
-// 일상노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
+// 살림노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
 // 노트는 notes.js, 식단은 meals.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
 
 // ---------- 날짜 유틸: 'YYYY-MM-DD' 문자열 ↔ 일(day) 번호 ----------
@@ -233,7 +233,7 @@ $('importFile').addEventListener('change', async e => {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { alert('읽을 수 없는 파일이에요.'); return; }
-  if (!Array.isArray(data.recs)) { alert('일상노트 백업 파일이 아니에요.'); return; }
+  if (!Array.isArray(data.recs)) { alert('살림노트 백업 파일이 아니에요.'); return; }
   if (!confirm('지금 데이터를 백업 파일 내용으로 바꿀까요?')) return;
   data.owner = db.owner; // 로그인 중이면 지금 계정 데이터로 취급
   data.recs.forEach(touch); // 계정에 있는 값보다 새것으로 → 백업 내용이 이김
