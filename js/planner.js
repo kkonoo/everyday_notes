@@ -102,6 +102,7 @@ function renderPlan() {
   $('planRandom').hidden = !random;
   $('planReroll').hidden = !random;
   $('planPick').hidden = random;
+  $('planRemove').hidden = random;
   if (!random) {
     $('planChosen').replaceChildren(...o.pick.map(name => {
       const b = button(`${name} ✕`, () => setPick(o.pick.filter(x => x !== name)), 'on');
@@ -198,6 +199,19 @@ menuInput($('planInput'), $('planSuggest'), name => {
   if (!o.pick.some(x => norm(x) === norm(name))) setPick([...o.pick, name]);
 });
 $('planClose').addEventListener('click', () => $('planner').close());
+// 직접 고른 메뉴를 고른 요일·끼니에서 빼기 (들어 있는 것만, 없으면 아무것도 안 함)
+$('planRemove').addEventListener('click', () => {
+  const o = plan(), s = o.slots.pick, names = o.pick.map(norm);
+  const hits = planDays.flatMap((on, i) => on
+    ? mealsOn(toStr(planWeek + i)).filter(m => m.slot === s && names.includes(norm(mealName(m)))) : []);
+  if (!hits.length) { toast(o.pick.length ? `고른 요일의 ${SLOTS[s]} 식단에 이 메뉴가 없어요` : '뺄 메뉴를 먼저 골라 주세요'); return; }
+  const lines = hits.map(m => `· ${fmtMD(m.date)}(${WD[weekday(toNum(m.date))]}) ${mealName(m)}`);
+  if (!confirm(`${SLOTS[s]} 식단에서 ${hits.length}개를 뺄까요?\n\n${lines.join('\n')}`)) return;
+  hits.forEach(remove);
+  $('planner').close();
+  save();
+  toast(`${SLOTS[s]} 식단에서 ${hits.length}개를 뺐어요`);
+});
 $('planApply').addEventListener('click', () => {
   const o = plan(), s = o.slots[o.mode];
   let n = 0;
