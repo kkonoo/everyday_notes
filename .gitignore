@@ -1,0 +1,5 @@
+# 로컬 개발 설정
+.claude/
+
+# Claude 작업 지침 (로컬 전용)
+CLAUDE.md

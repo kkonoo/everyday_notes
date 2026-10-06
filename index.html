@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>일상노트</title>
+<meta name="apple-mobile-web-app-title" content="일상노트">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/app-192.png">
+<link rel="apple-touch-icon" href="icons/app-maskable-192.png">
+<meta name="theme-color" id="themeColor" content="#F5F4F0">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-view="notes">
+
+<header class="topbar">
+  <div class="nav">
+    <button class="icon-btn" id="backBtn" aria-label="노트 목록">‹</button>
+    <h1 class="view-title">노트</h1>
+    <span class="meal-nav">
+      <button class="icon-btn" id="prevBtn" aria-label="이전 달">‹</button>
+      <span class="month-title" id="monthTitle"></span>
+      <button class="icon-btn" id="nextBtn" aria-label="다음 달">›</button>
+      <button class="btn" id="todayBtn">오늘</button>
+    </span>
+  </div>
+  <div class="tools">
+    <div class="seg" id="viewSeg">
+      <button type="button" data-view="notes">노트</button>
+      <button type="button" data-view="meals">식단</button>
+    </div>
+    <button class="btn" id="accountBtn" hidden>로그인</button>
+    <button class="icon-btn" id="themeBtn" title="라이트/다크 전환">◐</button>
+    <button class="btn" id="settingsBtn">설정</button>
+  </div>
+</header>
+
+<!-- 노트: 왼쪽 목록 + 오른쪽 내용 (폰은 목록 → 누르면 내용) -->
+<main class="notes-view">
+  <nav class="note-nav">
+    <div id="noteList"></div>
+    <button class="add-note" id="addNoteBtn">+ 새 노트</button>
+  </nav>
+  <section class="note" id="note"></section>
+</main>
+
+<!-- 식단: 달력 + 오른쪽(그날 식단, 메뉴·레시피) -->
+<main class="meals-view">
+  <section class="calendar">
+    <div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <aside class="side">
+    <section class="panel" id="dayPanel">
+      <div class="panel-head">
+        <h2 id="dayTitle"></h2>
+        <button class="btn small" id="weekShopBtn" title="이번 주(일~토) 식단의 재료를 장보기 목록에 추가">이번 주 재료 → 장보기</button>
+      </div>
+      <div id="mealList"></div>
+      <div class="meal-add">
+        <div class="seg" id="slotSeg">
+          <button type="button" data-slot="b">아침</button>
+          <button type="button" data-slot="l">점심</button>
+          <button type="button" data-slot="d">저녁</button>
+        </div>
+        <div class="suggest-wrap">
+          <input class="add-input" id="mealInput" placeholder="메뉴 추가" autocomplete="off">
+          <div class="suggest" id="mealSuggest" hidden></div>
+        </div>
+      </div>
+    </section>
+    <section class="panel" id="menuPanel">
+      <div class="panel-head">
+        <h2>메뉴 · 레시피</h2>
+        <span class="count" id="menuCount"></span>
+        <button class="icon-btn small" id="newMenuBtn" title="새 메뉴">＋</button>
+      </div>
+      <input type="search" class="search-input" id="menuSearch" placeholder="메뉴 찾기" autocomplete="off">
+      <ul class="list" id="menuList"></ul>
+    </section>
+  </aside>
+</main>
+
+<dialog id="newNote">
+  <form id="newNoteForm">
+    <input name="title" class="title-input" placeholder="노트 이름" required autocomplete="off">
+    <div class="type-pick" id="typePick">
+      <button type="button" data-type="shop"><b>장보기</b><span>늘 사는 것 목록에서 떨어진 것만 '살 것'으로</span></button>
+      <button type="button" data-type="check"><b>체크리스트</b><span>짐 싸기처럼 체크하고, 다음에 모두 해제</span></button>
+      <button type="button" data-type="memo"><b>메모</b><span>자유롭게 쓰는 글</span></button>
+    </div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="newNoteCancel">취소</button>
+      <button class="btn primary">만들기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="menuEditor">
+  <form id="menuForm">
+    <input name="name" class="title-input" placeholder="메뉴 이름" required autocomplete="off">
+    <label class="field-label">재료 <span class="hint">한 줄에 하나씩 (쉼표로 나눠도 돼요)</span></label>
+    <textarea name="ingredients" rows="4" placeholder="예) 두부&#10;대파&#10;고춧가루"></textarea>
+    <label class="field-label">만드는 법</label>
+    <textarea name="recipe" rows="5"></textarea>
+    <div class="row">
+      <label>링크</label>
+      <input name="link" class="text-input" placeholder="블로그·유튜브 주소" autocomplete="off">
+      <a class="pill-link" id="menuLinkOpen" target="_blank" rel="noopener">열기</a>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="menuDelBtn">삭제</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="menuShopBtn">재료 → 장보기</button>
+      <button type="button" class="btn" id="menuCancel">취소</button>
+      <button class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settings">
+  <section id="accountSection" hidden>
+    <h2>계정</h2>
+    <div class="row">
+      <span class="hint" id="accountInfo"></span>
+      <span class="spacer"></span>
+      <button class="btn primary" id="loginBtn">Google로 로그인</button>
+      <button class="btn" id="logoutBtn" hidden>로그아웃</button>
+    </div>
+  </section>
+
+  <h2>화면</h2>
+  <div class="row wide">
+    <label>테마</label>
+    <select id="themeSelect">
+      <option value="">시스템 설정 따름</option>
+      <option value="light">라이트</option>
+      <option value="dark">다크</option>
+    </select>
+  </div>
+  <div class="row wide"><label>글씨 크기</label><input type="range" min="13" max="20" id="fontRange"><span class="val" id="fontVal"></span></div>
+
+  <h2>백업</h2>
+  <div class="row">
+    <button class="btn" id="exportBtn">백업 파일 저장 (.json)</button>
+    <label class="btn">불러오기<input type="file" id="importFile" accept=".json" hidden></label>
+  </div>
+  <div class="dialog-actions"><span class="spacer"></span><button class="btn primary" id="closeSettingsBtn">닫기</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/holidays.js"></script>
+<script src="js/app.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/meals.js"></script>
+<script type="module" src="js/sync.js"></script>
+</body>
+</html>

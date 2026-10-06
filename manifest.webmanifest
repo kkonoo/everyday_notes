@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "일상노트",
+  "short_name": "일상노트",
+  "description": "장보기 · 체크리스트 · 메모 · 식단",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F4F0",
+  "theme_color": "#F5F4F0",
+  "icons": [
+    { "src": "icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
