@@ -151,41 +151,46 @@ function sortable(handle, row, targets, onDrop) {
     e.preventDefault();
     e.stopPropagation();
     handle.setPointerCapture(e.pointerId);
-    row.classList.add('dragging');
-    const sc = scrollParent(row);
-    let x = e.clientX, y = e.clientY, target = null, before = false, raf;
-    const mark = () => {
-      clearMarks();
-      const el = document.elementFromPoint(x, y)?.closest(targets);
-      target = el && el !== row && !row.contains(el) ? el : null;
-      if (!target) return;
-      const r = target.getBoundingClientRect();
-      before = y < r.top + r.height / 2;
-      target.classList.add(before ? 'drop-before' : 'drop-after');
-    };
-    // 위·아래 끝 가까이 끌고 있으면 저절로 스크롤
-    const tick = () => {
-      const r = sc === document.scrollingElement ? { top: 0, bottom: innerHeight } : sc.getBoundingClientRect();
-      const d = y < r.top + 50 ? -8 : y > r.bottom - 50 ? 8 : 0;
-      if (d) { sc.scrollBy(0, d); mark(); }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    const move = ev => { x = ev.clientX; y = ev.clientY; mark(); };
-    const end = drop => () => {
-      cancelAnimationFrame(raf);
-      handle.removeEventListener('pointermove', move);
-      handle.removeEventListener('pointerup', up);
-      handle.removeEventListener('pointercancel', cancel);
-      row.classList.remove('dragging');
-      clearMarks();
-      if (drop && target) onDrop(target, before);
-    };
-    const up = end(true), cancel = end(false);
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', up);
-    handle.addEventListener('pointercancel', cancel);
+    dragRow(row, targets, onDrop, e);
   });
+}
+// 끌기: 손잡이를 누르거나(sortable) 폰에서 항목을 길게 누른 뒤(notes.js). start = 누른 곳 { clientX, clientY, pointerId }
+function dragRow(row, targets, onDrop, start) {
+  row.classList.add('dragging');
+  const sc = scrollParent(row), id = start.pointerId;
+  let x = start.clientX, y = start.clientY, moved = false, target = null, before = false, raf;
+  const mark = () => {
+    clearMarks();
+    const el = document.elementFromPoint(x, y)?.closest(targets);
+    target = el && el !== row && !row.contains(el) ? el : null;
+    if (!target) return;
+    const r = target.getBoundingClientRect();
+    before = y < r.top + r.height / 2;
+    target.classList.add(before ? 'drop-before' : 'drop-after');
+  };
+  // 위·아래 끝 가까이 끌고 있으면 저절로 스크롤
+  const tick = () => {
+    const r = sc === document.scrollingElement ? { top: 0, bottom: innerHeight } : sc.getBoundingClientRect();
+    const d = y < r.top + 50 ? -8 : y > r.bottom - 50 ? 8 : 0;
+    if (d && moved) { sc.scrollBy(0, d); mark(); }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  const move = ev => { if (ev.pointerId !== id) return; x = ev.clientX; y = ev.clientY; moved = true; mark(); };
+  const end = drop => ev => {
+    if (ev.pointerId !== id) return;
+    cancelAnimationFrame(raf);
+    removeEventListener('pointermove', move);
+    removeEventListener('pointerup', up);
+    removeEventListener('pointercancel', cancel);
+    row.classList.remove('dragging');
+    clearMarks();
+    if (drop && target) onDrop(target, before);
+  };
+  const up = end(true), cancel = end(false);
+  addEventListener('pointermove', move);
+  addEventListener('pointerup', up);
+  addEventListener('pointercancel', cancel);
 }
 function dragHandle() {
   const s = h('span', 'handle', '⋮⋮');
@@ -318,8 +323,15 @@ if (phone()) {
   });
 }
 
-let resizeTimer;
-addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+// 폰은 키보드가 오르내릴 때마다 높이가 바뀜. 그때 다시 그리면 입력 중이던 칸(제목 고치기 등)이 사라지거나
+// 커서가 원래 칸으로 되돌아가서 키보드가 다시 올라옴 → 폰은 너비가 바뀔 때만 (폰은 높이에 따라 그리는 게 없음)
+let resizeTimer, lastWidth = innerWidth;
+addEventListener('resize', () => {
+  if (phone() && innerWidth === lastWidth) return;
+  lastWidth = innerWidth;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(render, 150);
+});
 applyTheme();
 applyFont();
 applySideW();

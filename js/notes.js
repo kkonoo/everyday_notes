@@ -435,8 +435,8 @@ function entryRow(n, e, mode) {
   }
   li.append(tools);
   if (open) li.append(memoArea(e));
-  // 폰: 길게 누르면 도구(✎ ✕ ⋮⋮)를 보여줌 (마우스를 올린 것처럼). 다른 데를 누르면 닫힘
-  longPress(li, () => {
+  // 폰: 길게 누르면 ✎ ✕ 를 보여주고 (다른 데를 누르면 닫힘), 손을 떼지 않고 끌면 다른 자리·묶음으로 옮김 (폰은 ⋮⋮ 없음)
+  longPress(li, start => {
     li.classList.add('show-tools');
     const close = ev => {
       if (li.contains(ev.target)) return;
@@ -444,6 +444,7 @@ function entryRow(n, e, mode) {
       removeEventListener('pointerdown', close, true);
     };
     addEventListener('pointerdown', close, true);
+    if (mode !== 'need') dragRow(li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before), start);
   });
   li.addEventListener('click', () => {
     if (li.classList.contains('editing')) return;
@@ -497,18 +498,21 @@ function memoArea(e) {
   ta.addEventListener('click', ev => ev.stopPropagation());
   return ta;
 }
-// 길게 누르기 (터치): 0.5초 동안 거의 안 움직이면 fn. 그 뒤에 오는 click(체크 등)은 막음
+// 길게 누르기 (터치): 0.5초 동안 거의 안 움직이면 fn(누른 곳 { clientX, clientY, pointerId }).
+// 그 뒤에 오는 click(체크 등)은 막고, 그대로 움직여도 화면은 스크롤되지 않게 (끌기로 씀)
 function longPress(el, fn) {
-  let timer = null, fired = false, x = 0, y = 0;
+  let timer = null, fired = false, x = 0, y = 0, id = null;
   const cancel = () => clearTimeout(timer);
   el.addEventListener('pointerdown', e => {
     fired = false;
     if (e.pointerType !== 'touch' || e.target.closest('input, textarea, button, .handle')) return;
     x = e.clientX;
     y = e.clientY;
+    id = e.pointerId;
     cancel();
-    timer = setTimeout(() => { fired = true; fn(); }, 500);
+    timer = setTimeout(() => { fired = true; fn({ clientX: x, clientY: y, pointerId: id }); }, 500);
   });
+  el.addEventListener('touchmove', e => { if (fired && e.cancelable) e.preventDefault(); }, { passive: false });
   el.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - x, e.clientY - y) > 8) cancel(); });
   el.addEventListener('pointerup', cancel);
   el.addEventListener('pointercancel', cancel);

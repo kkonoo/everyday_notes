@@ -289,7 +289,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .entry:hover .entry-tools { visibility: visible; }
 .entry.editing { cursor: default; }
 .entry.editing .entry-tools { visibility: hidden; }
-@media (hover: none) { .entry-tools { display: none; } }
+@media (hover: none) { .entry-tools, .entry-tools .handle { display: none; } } /* 폰: 끌기는 길게 누른 채로 */
 /* 폰: 길게 누르면 그 항목만 도구가 보임 (notes.js longPress) */
 .entry.show-tools { background: var(--surface-2); }
 .entry.show-tools .entry-tools { display: flex; visibility: visible; }
