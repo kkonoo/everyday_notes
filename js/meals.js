@@ -157,12 +157,12 @@ menuInput($('mealInput'), $('mealSuggest'), addMeal);
 
 // ---------- 메뉴·레시피 ----------
 // 분류 = 종류(cuisine) › 분류(course) › 하위분류(sub). 비어 있어도 됨 (종류·분류가 없으면 '미분류')
-// 순서: menu-presets.js 의 CUISINES·COURSES(종류에 따라 CUISINE_COURSES) 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 하위분류 없는 메뉴는 맨 앞
+// 순서: 종류는 menu-presets.js 의 CUISINES 순서, 분류·하위분류·메뉴는 가나다순. '기타'·미분류는 맨 뒤, 하위분류 없는 메뉴는 맨 앞
 const NO_CAT = '미분류';
 const cuisineOf = x => x.cuisine || NO_CAT;
 const courseOf = x => x.course || NO_CAT;
 const COURSE_ORDER = Object.keys(COURSES);
-// 이름을 바꾼 종류(예: 디저트 → 간식·디저트)는 원래 종류의 분류 순서
+// 편집 창 자동완성에 넣는 정해 둔 분류·하위분류 (이름을 바꾼 종류(예: 디저트 → 간식·디저트)는 원래 종류의 분류)
 const courseOrder = cuisine => CUISINE_COURSES[cuisine]
   || (CUISINES.includes(cuisine) ? null : CUISINE_COURSES[presetCuisineOf(cuisine)]) || COURSE_ORDER;
 const subOrder = course => COURSES[course] || [];
@@ -170,6 +170,7 @@ const rankIn = (known, v) => !v ? -1 : known.includes(v) ? known.indexOf(v) : kn
 // '기타'는 늘 뒤 (직접 만든 이름보다도)
 const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || (a === '기타') - (b === '기타')
   || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
+const abc = ranker([]); // 가나다순 (분류·하위분류)
 function groupBy(list, key, order) {
   const m = new Map();
   for (const x of list) {
@@ -204,7 +205,7 @@ function childrenOf(p) {
   menusIn(p).forEach(x => names.add(x[LEVELS[L]] || ''));
   extraGroups().filter(q => q.length > L && startsWith(q, p)).forEach(q => names.add(q[L]));
   names.delete('');
-  return [...names].sort(L === 0 ? ranker(CUISINES) : L === 1 ? ranker(courseOrder(p[0])) : ranker(subOrder(p[1])));
+  return [...names].sort(L === 0 ? ranker(CUISINES) : abc);
 }
 // 메뉴 하나를 그룹 p로 (메뉴·레시피에서 ⋮⋮로 끌어 놓기). 종류·분류에 놓으면 아래 분류가 거기에도 있을 때만 그대로
 function moveMenu(x, p) {
@@ -276,7 +277,7 @@ function renderMenus() {
   const cuisines = [...new Set([...all.map(cuisineOf), ...ex.map(p => p[0])])].sort(ranker(CUISINES));
   menuCuisine = flat ? null : pick(cuisines, prefs.menuCuisine);
   const courses = [...new Set([...all.filter(x => cuisineOf(x) === menuCuisine).map(courseOf),
-    ...ex.filter(p => p[0] === menuCuisine && p[1]).map(p => p[1])])].sort(ranker(courseOrder(menuCuisine)));
+    ...ex.filter(p => p[0] === menuCuisine && p[1]).map(p => p[1])])].sort(abc);
   menuCourse = flat ? null : pick(courses, prefs.menuCourse);
   menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine', v => v === NO_CAT ? null : [v]);
   menuPills($('menuCourses'), courses, menuCourse, 'menuCourse', v => known(menuCuisine) && known(v) ? [menuCuisine, v] : null);
@@ -292,8 +293,8 @@ function renderMenus() {
   };
   if (flat) {
     for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
-      for (const [k, inK] of groupBy(inC, courseOf, ranker(courseOrder(c)))) {
-        for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
+      for (const [k, inK] of groupBy(inC, courseOf, abc)) {
+        for (const [s, ms] of groupBy(inK, x => x.sub || '', abc)) {
           out.push(dropAt(h('div', 'slot-head', [c, known(k), s].filter(Boolean).join(' › ')), [known(c), known(k), s]), ul(ms));
         }
       }
@@ -301,7 +302,7 @@ function renderMenus() {
   } else {
     // 메뉴가 없어도 직접 만든 하위분류는 보여줌 (끌어 놓을 수 있게)
     const subs = [...new Set([...list.map(x => x.sub || ''),
-      ...ex.filter(p => p[0] === menuCuisine && p[1] === menuCourse && p[2]).map(p => p[2])])].sort(ranker(subOrder(menuCourse)));
+      ...ex.filter(p => p[0] === menuCuisine && p[1] === menuCourse && p[2]).map(p => p[2])])].sort(abc);
     for (const s of subs) {
       const ms = list.filter(x => (x.sub || '') === s);
       if (s && !menuSubHead(menuCuisine, menuCourse, s, ms.length, out)) continue; // 접힌 하위분류
@@ -350,9 +351,9 @@ function fillCatLists() {
   });
   $('menuCuisineList').replaceChildren(...options([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES)));
   $('menuCourseList').replaceChildren(...options([...courseOrder(cuisine), ...all.filter(x => x.cuisine === cuisine).map(x => x.course)],
-    ranker(courseOrder(cuisine))));
+    abc));
   $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
-    ranker(subOrder(course))));
+    abc));
 }
 // 태그 고르는 목록 = 정해 둔 것(TAG_PRESETS, 설정에서 지운 것은 빼고) + 메뉴에 붙은 것
 // 지운 기본 태그는 계정에 저장 (id 고정 rec 하나라 기기끼리 겹치지 않음)
