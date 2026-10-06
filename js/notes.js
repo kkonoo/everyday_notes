@@ -1,11 +1,12 @@
 'use strict';
-// 노트: 장보기(shop) / 체크리스트(check) / 메모(memo). 왼쪽 목록 + 오른쪽 내용 (폰은 목록 → 누르면 내용)
+// 노트: 장보기(shop) / 체크리스트(check) / 메모(memo) / 목록(list: 주제(묶음)별 메모 — 항목 = 제목, 눌러서 내용 entry.memo). 왼쪽 목록 + 오른쪽 내용 (폰은 목록 → 누르면 내용)
 // 장보기·체크리스트 = 묶음(note.sections) → 항목(entry). 묶음이 없거나 지워진 항목은 '미분류'
 // 장보기: '전체'(늘 사는 것 목록)에서 눌러 need(살 것) 표시 → '살 것'에서 담으면 done → '산 것 정리'로 둘 다 끔
 const TYPES = {
   shop: { name: '장보기', color: '#7FCFB8' },
   check: { name: '체크리스트', color: '#F5D27A' },
   memo: { name: '메모', color: '#C7C1B8' },
+  list: { name: '목록', color: '#A8C8F0' },
 };
 // 내 카테고리: 종류와 따로 노트에 붙이는 묶음 { name, color, order }. 노트 색 = 카테고리 색, 없으면 종류 색 (목록 점·체크 칸)
 const NOTE_COLORS = ['#F2A7A0', '#A8C8F0', '#C3B1E1', '#F5B97A', '#E8A9C9', '#B5D99C', '#D9B99B', '#7FCFB8', '#F5D27A', '#C7C1B8'];
@@ -38,6 +39,7 @@ const looseSection = n => (n.sections.find(s => s.name.trim() === '기타') || {
 
 let notePage = false; // 폰: 노트 안을 보는 중 (false면 목록)
 let editing = false;  // 편집 중: 이름 고치기·순서 바꾸기·지우기
+const openMemos = new Set(); // 목록: 내용을 펴 둔 항목 (앱을 켜 둔 동안)
 const currentNote = () => { const list = notes(); return list.find(n => n.id === prefs.note) || list[0] || null; };
 // 장보기 보기: need(살 것) / all(전체). 편집 중엔 전체. 고른 적 없으면 살 것이 있을 때만 '살 것'
 const tabOf = n => (n.type === 'shop' && !editing
@@ -74,6 +76,7 @@ function noteCount(n) {
   if (n.type === 'memo') return '';
   const list = entriesOf(n);
   if (n.type === 'shop') { const k = list.filter(toBuy).length; return k ? `살 것 ${k}` : ''; }
+  if (n.type === 'list') return list.length || '';
   return list.length ? `${list.filter(e => e.done).length}/${list.length}` : '';
 }
 function noteRow(n, on) {
@@ -136,7 +139,7 @@ function noteHead(n) {
         b.title = '담은(체크한) 항목을 살 것에서 빼요. 전체 목록에는 그대로 있어요';
         top.append(b);
       }
-    } else {
+    } else if (n.type === 'check') {
       const done = list.filter(e => e.done);
       if (done.length) top.append(button('모두 해제', () => {
         if (!confirm(`체크 ${done.length}개를 모두 해제할까요?`)) return;
@@ -197,7 +200,7 @@ function editBar(n) {
   bar.append(cs);
   if (n.type !== 'memo') {
     const sel = h('select');
-    for (const t of ['shop', 'check']) { const o = h('option', '', TYPES[t].name); o.value = t; sel.append(o); }
+    for (const t of ['shop', 'check', 'list']) { const o = h('option', '', TYPES[t].name); o.value = t; sel.append(o); }
     sel.value = n.type;
     sel.title = '노트 종류';
     sel.addEventListener('change', () => { n.type = sel.value; touch(n); save(); });
@@ -265,7 +268,8 @@ function copyNote(n) {
   c.sections = n.sections.map(s => { ids[s.id] = uid(); return { id: ids[s.id], name: s.name }; });
   db.recs.push(c);
   for (const e of entriesOf(n)) {
-    db.recs.push(newRec('entry', { note: c.id, section: ids[e.section] || null, text: e.text, done: false, need: !!e.need, order: e.order }));
+    db.recs.push(newRec('entry', { note: c.id, section: ids[e.section] || null, text: e.text, done: false, need: !!e.need, order: e.order,
+      ...(e.memo ? { memo: e.memo } : {}) }));
   }
   prefs.note = c.id;
   savePrefs();
@@ -306,7 +310,7 @@ function memoBody(n) {
 // ---------- 장보기·체크리스트 ----------
 // mode: need(살 것) / all(장보기 전체) / check(체크리스트) / edit(편집)
 function listBody(n) {
-  const mode = editing ? 'edit' : n.type === 'check' ? 'check' : tabOf(n);
+  const mode = editing ? 'edit' : n.type === 'check' || n.type === 'list' ? n.type : tabOf(n);
   const all = entriesOf(n), out = [];
   if (mode === 'need') out.push(shopAdder(n));
   for (const s of [...n.sections, null]) {
@@ -319,7 +323,9 @@ function listBody(n) {
   }
   if (mode === 'need' && !all.some(e => e.need)) out.push(h('p', 'hint center', '살 것이 없어요. 위에 적거나, ‘전체’에서 눌러 표시해요.'));
   if (mode !== 'need' && !all.length && !n.sections.length) {
-    out.push(h('p', 'hint', '항목을 적고 Enter. ‘편집 → + 묶음’으로 세안·옷처럼 나눌 수 있어요.'));
+    out.push(h('p', 'hint', n.type === 'list'
+      ? '메모 제목을 적고 Enter, 눌러서 내용을 적어요. ‘편집 → + 묶음’으로 주제를 나눠요.'
+      : '항목을 적고 Enter. ‘편집 → + 묶음’으로 세안·옷처럼 나눌 수 있어요.'));
   }
   return out;
 }
@@ -399,10 +405,17 @@ function entryRow(n, e, mode) {
     sortable(handle, li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
     return li;
   }
-  // 전체(장보기) = 눌러서 살 것 표시, 그 밖 = 눌러서 체크
-  const shopAll = mode === 'all';
-  li.classList.toggle(shopAll ? 'need' : 'done', !!(shopAll ? e.need : e.done));
-  li.append(h('span', shopAll ? 'mark' : 'check'), h('span', 'text', e.text));
+  // 목록 = 눌러서 내용 펴기·접기, 전체(장보기) = 눌러서 살 것 표시, 그 밖 = 눌러서 체크
+  const shopAll = mode === 'all', isList = mode === 'list', open = isList && openMemos.has(e.id);
+  if (isList) {
+    li.classList.add('memo-item');
+    li.classList.toggle('open', open);
+    li.append(h('span', 'fold', '▾'), h('span', 'text', e.text));
+    if (!open && e.memo) li.append(h('span', 'memo-preview', e.memo.split('\n').find(l => l.trim()) || ''));
+  } else {
+    li.classList.toggle(shopAll ? 'need' : 'done', !!(shopAll ? e.need : e.done));
+    li.append(h('span', shopAll ? 'mark' : 'check'), h('span', 'text', e.text));
+  }
   li.title = shopAll ? (e.need ? '눌러서 살 것에서 빼기' : '눌러서 살 것으로 표시') : '';
   // 마우스를 올리면 오른쪽에 ✎ 이름 바꾸기 · ✕ 삭제 · ⋮⋮ 끌기 (편집을 안 눌러도). '살 것'은 걸러 본 목록이라 ✎만
   const tools = h('span', 'entry-tools');
@@ -414,8 +427,24 @@ function entryRow(n, e, mode) {
     sortable(handle, li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
   }
   li.append(tools);
+  if (open) li.append(memoArea(e));
+  // 폰: 길게 누르면 도구(✎ ✕ ⋮⋮)를 보여줌 (마우스를 올린 것처럼). 다른 데를 누르면 닫힘
+  longPress(li, () => {
+    li.classList.add('show-tools');
+    const close = ev => {
+      if (li.contains(ev.target)) return;
+      li.classList.remove('show-tools');
+      removeEventListener('pointerdown', close, true);
+    };
+    addEventListener('pointerdown', close, true);
+  });
   li.addEventListener('click', () => {
     if (li.classList.contains('editing')) return;
+    if (isList) {
+      if (open) openMemos.delete(e.id); else openMemos.add(e.id);
+      render();
+      return;
+    }
     // 전체에서 표시하는 중에 '살 것'으로 넘어가지 않게 지금 보기를 고정
     if (shopAll && !(prefs.tab || {})[n.id]) { prefs.tab = { ...prefs.tab, [n.id]: 'all' }; savePrefs(); }
     if (shopAll) { e.need = !e.need; e.done = false; } else e.done = !e.done;
@@ -439,6 +468,46 @@ function dropEntry(n, e, t, before) {
   save();
 }
 
+// 목록 항목의 내용: 쓰는 동안 다시 그리지 않고 저장만 (0.5초 멈추면, 메모와 같음)
+function memoArea(e) {
+  const ta = h('textarea', 'entry-memo');
+  ta.value = e.memo || '';
+  ta.placeholder = '내용';
+  ta.dataset.key = `memo-entry:${e.id}`;
+  const fit = () => { ta.rows = Math.max(3, ta.value.split('\n').length + 1); };
+  fit();
+  let timer;
+  const flush = () => {
+    clearTimeout(timer);
+    if (ta.value === (e.memo || '')) return;
+    e.memo = ta.value;
+    touch(e);
+    persist();
+    if (window.onSave) window.onSave();
+  };
+  ta.addEventListener('input', () => { fit(); clearTimeout(timer); timer = setTimeout(flush, 500); });
+  ta.addEventListener('blur', flush);
+  ta.addEventListener('click', ev => ev.stopPropagation());
+  return ta;
+}
+// 길게 누르기 (터치): 0.5초 동안 거의 안 움직이면 fn. 그 뒤에 오는 click(체크 등)은 막음
+function longPress(el, fn) {
+  let timer = null, fired = false, x = 0, y = 0;
+  const cancel = () => clearTimeout(timer);
+  el.addEventListener('pointerdown', e => {
+    fired = false;
+    if (e.pointerType !== 'touch' || e.target.closest('input, textarea, button, .handle')) return;
+    x = e.clientX;
+    y = e.clientY;
+    cancel();
+    timer = setTimeout(() => { fired = true; fn(); }, 500);
+  });
+  el.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - x, e.clientY - y) > 8) cancel(); });
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('contextmenu', e => { if (fired) e.preventDefault(); });
+  el.addEventListener('click', e => { if (fired) { fired = false; e.stopImmediatePropagation(); } }, true);
+}
 // 항목 이름을 그 자리에서 입력칸으로 (Enter·칸 밖 = 저장, Esc = 취소)
 function editText(li, e) {
   const input = h('input', 'entry-input');

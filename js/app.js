@@ -16,8 +16,8 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 
 // ---------- 저장소 ----------
 // db.recs = 노트·항목·메뉴·식단을 한 배열에 (kind로 구분). 동기화는 한 줄(rec)씩, updatedAt이 늦은 쪽이 이김
-//   note:  { type: 'shop'|'check'|'memo', cat, title, sections: [{ id, name }], text, order }
-//   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
+//   note:  { type: 'shop'|'check'|'list'|'memo', cat, title, sections: [{ id, name }], text, order }   list = 주제별 메모 목록
+//   entry: { note, section, text, done, need, memo, order }   need = 장보기의 '살 것', memo = 목록 항목의 내용
 //   menu:  { name, cuisine, course, sub, tags: [], ingredients: [], recipe, link }   종류 › 분류 › 하위분류 (없으면 ''), tags = 계절·손님초대 등
 //   meal:  { date, slot: 'b'|'l'|'s'|'d'|'n' (아침·점심·간식·저녁·야식), name, menu, order }
 //   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
