@@ -137,7 +137,8 @@ function sideBox(side) {
     for (const g of [...bconf().groups, null]) {
       const ls = list.filter(l => groupOf(l) === (g ? g.id : null));
       if (!g && !ls.length) continue;
-      box.append(groupHead(g, ls), ...ls.map(lineRow), addLine(side, g ? g.id : null));
+      box.append(groupHead(g, ls));
+      if (!folded(g)) box.append(...ls.map(lineRow), addLine(side, g ? g.id : null));
     }
     box.append(button('+ 분류', addOutGroup, 'btn small add-group'));
   } else box.append(...list.map(lineRow), addLine(side, null));
@@ -158,9 +159,22 @@ function sumRow(cls, side, name, s) {
   return row;
 }
 
+// 분류 접기·펼치기: 제목을 누르면 (기기별 prefs.bfold, 미분류는 'none'). 접어도 합계는 보임
+const folded = g => !!(prefs.bfold || {})[g ? g.id : 'none'];
 function groupHead(g, ls) {
   const row = sumRow('bgroup', 'out', g ? g.name : '미분류', sums(ls, bm));
   row.dataset.group = g ? g.id : '';
+  row.classList.toggle('folded', folded(g));
+  row.title = folded(g) ? '펼치기' : '접기';
+  row.firstChild.prepend(h('span', 'fold', '▾'));
+  row.addEventListener('click', e => {
+    if (e.target.closest('.handle, button')) return;
+    const f = { ...prefs.bfold }, k = g ? g.id : 'none';
+    if (f[k]) delete f[k]; else f[k] = true;
+    prefs.bfold = f;
+    savePrefs();
+    render();
+  });
   if (!g) return row;
   const handle = dragHandle(), tools = h('span', 'btools');
   tools.append(iconBtn('✎', '분류 이름 바꾸기', () => renameOutGroup(g)), iconBtn('✕', '분류 지우기', () => deleteOutGroup(g)));

@@ -688,7 +688,10 @@ textarea:focus { border-color: var(--accent); }
 .bsec-head .bname { font-size: 17px; font-weight: 700; }
 .bsec-head .bname .hint { font-weight: 400; }
 .bsec-head .bnum b { font-size: 15px; }
-.bgroup { margin-top: 8px; padding: 4px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+.bgroup { margin-top: 8px; padding: 4px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; user-select: none; }
+.bgroup:hover { background: var(--surface-2); }
+.bgroup .fold { width: 12px; color: var(--faint); font-size: 12px; transition: transform .15s; }
+.bgroup.folded .fold { transform: rotate(-90deg); }
 .bgroup .bnum { font-size: 13px; font-weight: 600; color: var(--muted); }
 .bline { padding: 1px 4px; border-radius: 8px; font-size: var(--list-font); }
 .bline:hover { background: var(--surface-2); }
