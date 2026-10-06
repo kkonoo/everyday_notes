@@ -278,6 +278,12 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
   outline: none;
 }
 .entry-input:focus { border-bottom-color: var(--accent); }
+/* 항목에 마우스를 올리면 보이는 ✎ ✕ ⋮⋮ (폰은 마우스가 없으니 편집 모드로) */
+.entry-tools { display: flex; align-items: center; gap: 2px; margin: -4px -2px; visibility: hidden; }
+.entry:hover .entry-tools { visibility: visible; }
+.entry.editing { cursor: default; }
+.entry.editing .entry-tools { visibility: hidden; }
+@media (hover: none) { .entry-tools { display: none; } }
 
 /* 체크(네모) = 체크리스트·살 것 / 표시(동그라미) = 장보기 전체에서 '살 것' */
 /* 색 = 노트 색 (#note의 --c: 카테고리 색, 없으면 종류 색). 파스텔이라 체크 표시는 어둡게 */

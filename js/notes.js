@@ -402,7 +402,18 @@ function entryRow(n, e, mode) {
   li.classList.toggle(shopAll ? 'need' : 'done', !!(shopAll ? e.need : e.done));
   li.append(h('span', shopAll ? 'mark' : 'check'), h('span', 'text', e.text));
   li.title = shopAll ? (e.need ? '눌러서 살 것에서 빼기' : '눌러서 살 것으로 표시') : '';
+  // 마우스를 올리면 오른쪽에 ✎ 이름 바꾸기 · ✕ 삭제 · ⋮⋮ 끌기 (편집을 안 눌러도). '살 것'은 걸러 본 목록이라 ✎만
+  const tools = h('span', 'entry-tools');
+  tools.append(iconBtn('✎', '이름 바꾸기', () => editText(li, e)));
+  if (mode !== 'need') {
+    const handle = dragHandle();
+    handle.addEventListener('click', ev => ev.stopPropagation()); // 끌고 난 뒤 체크되지 않게
+    tools.append(iconBtn('✕', '항목 삭제', () => { remove(e); save(); }), handle);
+    sortable(handle, li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
+  }
+  li.append(tools);
   li.addEventListener('click', () => {
+    if (li.classList.contains('editing')) return;
     // 전체에서 표시하는 중에 '살 것'으로 넘어가지 않게 지금 보기를 고정
     if (shopAll && !(prefs.tab || {})[n.id]) { prefs.tab = { ...prefs.tab, [n.id]: 'all' }; savePrefs(); }
     if (shopAll) { e.need = !e.need; e.done = false; } else e.done = !e.done;
@@ -426,6 +437,28 @@ function dropEntry(n, e, t, before) {
   save();
 }
 
+// 항목 이름을 그 자리에서 입력칸으로 (Enter·칸 밖 = 저장, Esc = 취소)
+function editText(li, e) {
+  const input = h('input', 'entry-input');
+  input.value = e.text;
+  let finished = false;
+  const finish = ok => {
+    if (finished) return;
+    finished = true;
+    const v = input.value.trim();
+    if (ok && v && v !== e.text) { e.text = v; touch(e); save(); } else render();
+  };
+  input.addEventListener('click', ev => ev.stopPropagation());
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); finish(true); }
+    if (ev.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
+  li.classList.add('editing');
+  li.querySelector('.text').replaceWith(input);
+  input.focus();
+  input.select();
+}
 function addInput(n, sec) {
   const input = h('input', 'add-input');
   input.placeholder = '+ 항목 추가';
