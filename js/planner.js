@@ -41,8 +41,9 @@ function seasonWords(m) {
   const r = recs('season').find(x => x.id === seasonId(m));
   return r ? r.items : SEASON_PRESETS[m].split(',').map(s => s.trim());
 }
-// 한 글자는 그 글자로 시작할 때만 ('무' → 무말랭이, 무침은 아님)
-const hit = (s, w) => w.length > 1 ? s.includes(w) : s.startsWith(w);
+// 한 글자는 그 글자로 시작할 때만 ('무' → 무말랭이, 무침은 아님). 더 긴 제철 재료로 시작하면 아님 ('배' → 배추김치는 아님)
+const LONG_SEASON = [...new Set(Object.values(SEASON_PRESETS).flatMap(v => v.split(',').map(s => norm(s.trim()))))].filter(w => w.length > 1);
+const hit = (s, w) => w.length > 1 ? s.includes(w) : s.startsWith(w) && !LONG_SEASON.some(l => l.startsWith(w) && s.startsWith(l));
 function seasonal(x) {
   const ws = seasonWords(seasonMonth()).map(norm);
   return ws.some(w => hit(norm(x.name), w) || (x.ingredients || []).some(g => hit(norm(g), w)));

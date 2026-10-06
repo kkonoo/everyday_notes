@@ -526,18 +526,20 @@ function upgradeMenus() {
 }
 if (upgradeMenus()) persist();
 
-// 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴는 건너뛰고, 그 메뉴에 분류가 없으면 분류만 채움
+// 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴와 지운 메뉴는 건너뛰고, 있는 메뉴에 분류가 없으면 분류만 채움
 $('presetBtn').addEventListener('click', () => {
   const have = new Map(recs('menu').map(x => [norm(x.name), x]));
+  const gone = new Set(db.recs.filter(r => r.kind === 'menu' && r.deleted).map(r => norm(r.name))); // 지운 건 다시 넣지 않음
   const add = [], fill = [];
   for (const p of presetMenus()) {
     const x = have.get(norm(p.name));
-    if (!x) add.push(newRec('menu', { name: p.name, cuisine: p.cuisine, course: p.course, sub: p.sub, ingredients: [], recipe: p.note || '', link: '' }));
-    else if (!x.cuisine && !x.course) fill.push([x, p]);
+    if (!x) {
+      if (!gone.has(norm(p.name))) add.push(newRec('menu', { name: p.name, cuisine: p.cuisine, course: p.course, sub: p.sub, ingredients: [], recipe: p.note || '', link: '' }));
+    } else if (!x.cuisine && !x.course) fill.push([x, p]);
   }
   if (!add.length && !fill.length) { toast('기본 메뉴가 이미 모두 있어요'); return; }
   const lines = [];
-  if (add.length) lines.push(`기본 메뉴 ${add.length}개를 메뉴·레시피에 추가해요.`);
+  if (add.length) lines.push(`기본 메뉴 ${add.length}개를 메뉴·레시피에 추가해요.` + (add.length <= 20 ? `\n(${add.map(x => x.name).join(', ')})` : ''));
   if (fill.length) lines.push(`이미 있는 메뉴 ${fill.length}개는 분류만 채워요.`);
   if (!confirm(`${lines.join('\n')}\n계속할까요?`)) return;
   db.recs.push(...add);
