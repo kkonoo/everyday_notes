@@ -113,12 +113,16 @@ function mealRow(m) {
   li.addEventListener('click', () => openMenu(menu || newRec('menu', { name: m.name, ingredients: [], recipe: '', link: '' }), m));
   return li;
 }
-function addMeal(name) {
-  const menu = menuNamed(name), s = slot();
+// 식단에 메뉴 하나 (저장은 부르는 쪽에서)
+function pushMeal(date, s, name) {
+  const menu = menuNamed(name);
   db.recs.push(newRec('meal', {
-    date: selected, slot: s, name: menu ? menu.name : name, menu: menu ? menu.id : null,
-    order: nextOrder(mealsOn(selected).filter(m => m.slot === s)),
+    date, slot: s, name: menu ? menu.name : name, menu: menu ? menu.id : null,
+    order: nextOrder(mealsOn(date).filter(m => m.slot === s)),
   }));
+}
+function addMeal(name) {
+  pushMeal(selected, slot(), name);
   save();
 }
 $('slotSeg').addEventListener('click', e => {
@@ -129,20 +133,22 @@ $('slotSeg').addEventListener('click', e => {
   renderDay();
   if (!phone()) $('mealInput').focus();
 });
-// 메뉴 넣기: 적으면 메뉴 목록에서 찾아 보여줌 (없는 이름도 그냥 넣을 수 있음)
-const mealInput = $('mealInput'), mealSuggest = $('mealSuggest');
-mealInput.addEventListener('input', () => {
-  const q = norm(mealInput.value);
-  const hits = q ? menus().filter(x => norm(x.name).includes(q)).slice(0, 8) : [];
-  mealSuggest.replaceChildren(...hits.map(x => suggestBtn(x.name, () => {
-    mealInput.value = '';
-    mealSuggest.hidden = true;
-    addMeal(x.name);
-  })));
-  mealSuggest.hidden = !hits.length;
-});
-mealInput.addEventListener('blur', () => { mealSuggest.hidden = true; });
-onEnter(mealInput, text => { mealSuggest.hidden = true; addMeal(text); });
+// 메뉴 이름 칸: 적으면 메뉴 목록에서 찾아 보여주고, 고르거나 Enter면 onPick(이름) (없는 이름도 그냥 됨)
+function menuInput(input, box, onPick) {
+  input.addEventListener('input', () => {
+    const q = norm(input.value);
+    const hits = q ? menus().filter(x => norm(x.name).includes(q)).slice(0, 8) : [];
+    box.replaceChildren(...hits.map(x => suggestBtn(x.name, () => {
+      input.value = '';
+      box.hidden = true;
+      onPick(x.name);
+    })));
+    box.hidden = !hits.length;
+  });
+  input.addEventListener('blur', () => { box.hidden = true; });
+  onEnter(input, text => { box.hidden = true; onPick(text); });
+}
+menuInput($('mealInput'), $('mealSuggest'), addMeal);
 
 // ---------- 메뉴·레시피 ----------
 // 분류 = 큰 카테고리(cat) › 서브카테고리(sub). 둘 다 비어 있어도 됨 (카테고리가 없으면 '미분류')

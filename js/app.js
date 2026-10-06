@@ -20,6 +20,7 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
 //   menu:  { name, cat, sub, ingredients: [], recipe, link }   cat·sub = 분류 (큰 카테고리 › 서브카테고리, 없으면 '')
 //   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
+//   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
