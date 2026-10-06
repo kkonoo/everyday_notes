@@ -185,7 +185,24 @@ function menuPills(box, values, on, key) {
     renderMenus();
   }, v === on ? 'on' : '')));
 }
-// 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때는 모든 메뉴에서
+// 하위분류 제목: 처음엔 접혀 있고 누르면 펼침 (펼친 것은 prefs.menuOpen에 기억). 펼쳐져 있으면 true
+const groupKey = (c, k, s) => [c, k, s].join('›');
+function menuSubHead(key, name, n, out) {
+  const open = !!(prefs.menuOpen || {})[key];
+  const head = h('div', 'menu-sub' + (open ? '' : ' folded'));
+  head.append(h('span', 'fold', '▾'), h('span', 'name', name), h('span', 'count', n));
+  head.title = open ? '접기' : '펼치기';
+  head.addEventListener('click', () => {
+    const o = { ...prefs.menuOpen };
+    if (open) delete o[key]; else o[key] = true;
+    prefs.menuOpen = o;
+    savePrefs();
+    renderMenus();
+  });
+  out.push(head);
+  return open;
+}
+// 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때는 모든 메뉴에서 (다 펼쳐서)
 function renderMenus() {
   const q = norm($('menuSearch').value), all = menus();
   const pick = (values, v) => values.includes(v) ? v : values[0];
@@ -203,8 +220,8 @@ function renderMenus() {
   for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
     for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
       for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
-        const head = q ? [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ') : s;
-        if (head) out.push(h('div', 'slot-head', head));
+        if (q) out.push(h('div', 'slot-head', [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ')));
+        else if (s && !menuSubHead(groupKey(c, k, s), s, ms.length, out)) continue; // 접힌 하위분류
         const ul = h('ul', 'list');
         ul.append(...ms.map(menuRow));
         out.push(ul);
@@ -280,8 +297,14 @@ menuForm.addEventListener('submit', e => {
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
   touch(m);
-  // 새 메뉴는 목록에서 그 종류·분류를 열어 보여줌
-  if (!db.recs.includes(m)) { db.recs.push(m); prefs.menuCuisine = cuisineOf(m); prefs.menuCourse = courseOf(m); savePrefs(); }
+  // 새 메뉴는 목록에서 그 종류·분류·하위분류를 열어 보여줌
+  if (!db.recs.includes(m)) {
+    db.recs.push(m);
+    prefs.menuCuisine = cuisineOf(m);
+    prefs.menuCourse = courseOf(m);
+    prefs.menuOpen = { ...prefs.menuOpen, [groupKey(cuisineOf(m), courseOf(m), m.sub)]: true };
+    savePrefs();
+  }
   if (linkMeal && linkMeal.menu !== m.id) { linkMeal.menu = m.id; touch(linkMeal); }
   $('menuEditor').close();
   save();

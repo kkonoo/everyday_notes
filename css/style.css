@@ -455,6 +455,12 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .panel .empty { margin: 4px 8px; font-size: 13px; line-height: 1.5; color: var(--faint); }
 .slot-head { margin: 8px 8px 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .slot-head:first-child { margin-top: 0; }
+/* 메뉴 목록의 하위분류 제목: 눌러서 접기·펼치기 */
+.menu-sub { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; user-select: none; }
+.menu-sub:hover { background: var(--surface-2); }
+.menu-sub .fold { width: 12px; color: var(--faint); font-size: 12px; transition: transform .15s; }
+.menu-sub.folded .fold { transform: rotate(-90deg); }
+.menu-sub .count { font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .meal-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .meal-add .add-input { margin-top: 0; }
 .search-input {
