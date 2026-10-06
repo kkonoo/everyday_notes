@@ -425,18 +425,17 @@ function entryRow(n, e, mode) {
     li.append(h('span', shopAll ? 'mark' : 'check'), h('span', 'text', e.text));
   }
   li.title = shopAll ? (e.need ? '눌러서 살 것에서 빼기' : '눌러서 살 것으로 표시') : '';
-  // 마우스를 올리면 오른쪽에 ✎ 이름 바꾸기 · ✕ 삭제 · ⋮⋮ 끌기 (편집을 안 눌러도). '살 것'은 걸러 본 목록이라 ✎만
+  // 마우스를 올리면 오른쪽에 ✎ 이름 바꾸기 · ✕ 삭제 (편집을 안 눌러도). 항목을 누른 채 끌면 순서·묶음 옮기기
+  // '살 것'은 걸러 본 목록이라 ✎만, 끌기도 없음
   const tools = h('span', 'entry-tools');
   tools.append(iconBtn('✎', '이름 바꾸기', () => editText(li, e)));
   if (mode !== 'need') {
-    const handle = dragHandle();
-    handle.addEventListener('click', ev => ev.stopPropagation()); // 끌고 난 뒤 체크되지 않게
-    tools.append(iconBtn('✕', '항목 삭제', () => { remove(e); save(); }), handle);
-    sortable(handle, li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
+    tools.append(iconBtn('✕', '항목 삭제', () => { remove(e); save(); }));
+    dragByMouse(li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
   }
   li.append(tools);
   if (open) li.append(memoArea(e));
-  // 폰: 길게 누르면 ✎ ✕ 를 보여주고 (다른 데를 누르면 닫힘), 손을 떼지 않고 끌면 다른 자리·묶음으로 옮김 (폰은 ⋮⋮ 없음)
+  // 폰: 길게 누르면 ✎ ✕ 를 보여주고 (다른 데를 누르면 닫힘), 손을 떼지 않고 끌면 다른 자리·묶음으로 옮김
   longPress(li, start => {
     li.classList.add('show-tools');
     const close = ev => {

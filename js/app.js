@@ -157,7 +157,26 @@ function sortable(handle, row, targets, onDrop) {
     dragRow(row, targets, onDrop, e);
   });
 }
-// 끌기: 손잡이를 누르거나(sortable) 폰에서 항목을 길게 누른 뒤(notes.js). start = 누른 곳 { clientX, clientY, pointerId }
+// 마우스: 손잡이 없이 줄을 누른 채 조금(5px) 움직이면 끌기. 그냥 누르면 원래대로 click (체크 등), 끌고 난 뒤의 click은 막음
+function dragByMouse(row, targets, onDrop) {
+  let dragged = false;
+  row.addEventListener('pointerdown', e => {
+    dragged = false;
+    if (e.pointerType !== 'mouse' || e.button || e.target.closest('input, textarea, button, select, a')) return;
+    const { clientX: x, clientY: y, pointerId: id } = e;
+    const stop = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', stop); };
+    const move = ev => {
+      if (ev.pointerId !== id || Math.hypot(ev.clientX - x, ev.clientY - y) < 5) return;
+      stop();
+      dragged = true;
+      dragRow(row, targets, onDrop, ev);
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', stop);
+  });
+  row.addEventListener('click', e => { if (dragged) { dragged = false; e.stopImmediatePropagation(); } }, true);
+}
+// 끌기: 손잡이를 누르거나(sortable) 줄을 끌거나(dragByMouse) 폰에서 길게 누른 뒤(notes.js). start = 누른 곳 { clientX, clientY, pointerId }
 function dragRow(row, targets, onDrop, start) {
   row.classList.add('dragging');
   const sc = scrollParent(row), id = start.pointerId;
