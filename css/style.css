@@ -65,7 +65,30 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .nav, .tools, .meal-nav { display: flex; align-items: center; gap: 6px; }
 .view-title { margin: 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.month-title { min-width: 130px; padding: 0 6px; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.month-title { min-width: 130px; padding: 4px 10px; border: none; border-radius: 9px; background: transparent; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; cursor: pointer; }
+.month-title:hover { background: var(--surface); }
+/* 연·월 고르기 (캘린더x플래너와 같음) */
+.month-picker {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+}
+.mp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mp-head strong { font-size: 16px; }
+.mp-head .icon-btn:hover { background: var(--surface-2); }
+.mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.mp-grid button { padding: 9px 0; border: none; border-radius: 8px; background: transparent; font-size: 14px; cursor: pointer; }
+.mp-grid button:hover { background: var(--surface-2); }
+.mp-grid button.now { color: var(--accent); font-weight: 700; }
+.mp-grid button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .meal-nav .btn { margin-left: 8px; }
 #backBtn { display: none; }
 body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title, body[data-view="budget"] .view-title { display: none; }

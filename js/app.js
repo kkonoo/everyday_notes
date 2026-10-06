@@ -298,6 +298,31 @@ $('importFile').addEventListener('change', async e => {
   save();
 });
 
+// ---------- 연·월 고르기: 식단·가계부의 달 제목을 누르면 (캘린더x플래너와 같음) ----------
+// 보는 달 = 식단은 meals.js 의 view, 가계부는 budget.js 의 bm
+const shownMonth = () => (prefs.view === 'budget' ? [+bm.slice(0, 4), +bm.slice(5, 7)] : [view.y, view.m]);
+let pickYear, pickerOpen = false;
+function renderPicker() {
+  const [vy, vm] = shownMonth(), [ty, tm] = ymd(todayStr());
+  $('mpYear').textContent = `${pickYear}년`;
+  $('mpGrid').replaceChildren(...Array.from({ length: 12 }, (_, i) => button(`${i + 1}월`, () => {
+    if (prefs.view === 'budget') bm = `${pickYear}-${pad(i + 1)}`; else view = { y: pickYear, m: i + 1 };
+    $('monthPicker').hidePopover();
+    render();
+  }, (pickYear === vy && i + 1 === vm ? 'on' : '') + (pickYear === ty && i + 1 === tm ? ' now' : ''))));
+}
+$('monthPicker').addEventListener('beforetoggle', e => {
+  if (e.newState !== 'open') return;
+  pickYear = shownMonth()[0];
+  renderPicker();
+  const r = $('monthTitle').getBoundingClientRect();
+  $('monthPicker').style.top = `${r.bottom + 6}px`;
+  $('monthPicker').style.left = `${Math.min(Math.max(r.left + r.width / 2, 138), innerWidth - 138)}px`; // 창(260px)이 화면 밖으로 안 나가게
+});
+$('monthPicker').addEventListener('toggle', e => { pickerOpen = e.newState === 'open'; });
+$('mpPrev').addEventListener('click', () => { pickYear--; renderPicker(); });
+$('mpNext').addEventListener('click', () => { pickYear++; renderPicker(); });
+
 // ---------- 폰: 뒤로 가기 ----------
 // 기록을 한 칸 더 쌓아 두고, 뒤로 가기로 그 칸이 빠지면(popstate) 앱 안에서 처리한 뒤 다시 쌓음.
 // 닫을 게 없으면 안내만 띄우고 2초 동안 안 쌓음 → 그사이 또 뒤로 가면 앱이 닫힘. (캘린더x플래너와 같은 방식)
@@ -310,6 +335,7 @@ if (phone()) {
   addEventListener('popstate', () => {
     const dlg = document.querySelector('dialog[open]'), open = document.querySelector('.suggest:not([hidden])');
     if (dlg) dlg.close();
+    else if (pickerOpen) $('monthPicker').hidePopover();
     else if (open) document.activeElement.blur();
     else if (prefs.view === 'meals' || prefs.view === 'budget') { prefs.view = 'notes'; savePrefs(); render(); }
     else if (editing) { editing = false; render(); }
