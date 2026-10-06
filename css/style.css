@@ -159,9 +159,7 @@ body[data-view="meals"] .meals-view { display: grid; grid-template-columns: minm
 .cat-dot.on { border-color: var(--text); }
 .cat-row { margin: 4px 0; }
 .cat-row .cat-name { flex: 1; min-width: 0; }
-.palette { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 30px; }
-.note-row .handle { visibility: hidden; }
-.note-row:hover .handle { visibility: visible; }
+.palette { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 18px; } /* 색 점 아래에 맞춤 */
 .add-note {
   margin-top: 6px;
   padding: 10px;

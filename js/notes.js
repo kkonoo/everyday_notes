@@ -57,11 +57,12 @@ $('backBtn').addEventListener('click', () => { notePage = false; editing = false
 function renderNotes() {
   const cur = currentNote(), list = notes();
   document.body.dataset.page = phone() && notePage && cur ? 'note' : 'list';
-  // 카테고리 없는 노트가 위, 그 아래 카테고리별로
+  // 카테고리 없는 노트가 위, 그 아래 카테고리별로 (빈 카테고리도 제목은 보여줌: 끌어 놓을 곳)
   const out = list.filter(n => !noteCatOf(n)).map(n => noteRow(n, n === cur));
   for (const c of noteCats()) {
-    const ns = list.filter(n => n.cat === c.id);
-    if (ns.length) out.push(h('div', 'note-cat', c.name), ...ns.map(n => noteRow(n, n === cur)));
+    const head = h('div', 'note-cat', c.name);
+    head.dataset.cat = c.id;
+    out.push(head, ...list.filter(n => n.cat === c.id).map(n => noteRow(n, n === cur)));
   }
   $('noteList').replaceChildren(...(list.length ? out : [h('p', 'hint', '‘+ 새 노트’로 장보기·체크리스트·메모를 만들어요.')]));
   renderNote(cur);
@@ -80,11 +81,17 @@ function noteRow(n, on) {
   const handle = dragHandle();
   row.append(h('span', 'dot'), h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)), handle);
   row.addEventListener('click', e => { if (!e.target.closest('.handle')) openNote(n); });
-  // 다른 카테고리의 노트 위에 놓으면 그 카테고리로
-  sortable(handle, row, '.note-row', (t, before) => {
-    const target = notes().find(x => x.id === t.dataset.id), catId = x => (noteCatOf(x) || {}).id || null;
-    if (catId(n) !== catId(target)) { n.cat = catId(target); touch(n); }
-    reorder(notes(), n, target, before);
+  // 다른 카테고리의 노트 위에 놓으면 그 카테고리로, 카테고리 제목에 놓으면 그 카테고리 맨 위로
+  sortable(handle, row, '.note-row, .note-cat', (t, before) => {
+    const catId = x => (noteCatOf(x) || {}).id || null;
+    let target = notes().find(x => x.id === t.dataset.id), cat = target && catId(target);
+    if (!target) {
+      cat = t.dataset.cat;
+      target = notes().find(x => x !== n && x.cat === cat); // 그 카테고리의 첫 노트 앞 (비어 있으면 자리는 그대로)
+      before = true;
+    }
+    if (catId(n) !== cat) { n.cat = cat; touch(n); }
+    if (target) reorder(notes(), n, target, before);
     save();
   });
   return row;
@@ -212,10 +219,17 @@ function renderNoteCats() {
     return b;
   };
   for (const c of noteCats()) {
-    const n = notes().filter(x => x.cat === c.id).length, row = h('div', 'row cat-row');
+    const n = notes().filter(x => x.cat === c.id).length, row = h('div', 'row cat-row'), handle = dragHandle();
+    row.dataset.id = c.id;
+    // 끌어서 순서 바꾸기 = 노트 목록의 카테고리 순서
+    sortable(handle, row, '#noteCatManage .cat-row', (t, before) => {
+      reorder(noteCats(), c, noteCats().find(x => x.id === t.dataset.id), before);
+      save();
+      renderNoteCats();
+    });
     const d = dot(c.color, () => { pickingCat = pickingCat === c.id ? null : c.id; renderNoteCats(); }, pickingCat === c.id);
     d.title = '색 바꾸기';
-    row.append(d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', () => {
+    row.append(handle, d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', () => {
       const name = (prompt('카테고리 이름', c.name) || '').trim();
       if (!name || name === c.name) return;
       c.name = name;
