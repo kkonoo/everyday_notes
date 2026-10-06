@@ -192,6 +192,17 @@
   </div>
 </dialog>
 
+<dialog id="menuGroups">
+  <h2>메뉴 분류 정리</h2>
+  <p class="hint">⋮⋮를 끌어서 다른 그룹 이름 위에 놓으면 그 그룹으로 옮겨져요. ✎ 이름 바꾸기(안의 메뉴 모두) · ＋ 새 그룹 (메뉴를 넣어야 남아요)</p>
+  <div id="groupTree"></div>
+  <div class="dialog-actions">
+    <button type="button" class="btn" id="groupAddCuisine">＋ 종류</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn primary" id="groupsClose">닫기</button>
+  </div>
+</dialog>
+
 <dialog id="settings">
   <section id="accountSection" hidden>
     <h2>계정</h2>
@@ -219,6 +230,10 @@
     <button class="btn" id="presetBtn">기본 메뉴 넣기</button>
     <span class="hint">메뉴·레시피에 기본 메뉴를 추가해요. 이미 있는 이름은 건너뛰어요.</span>
   </div>
+  <div class="row">
+    <button class="btn" id="groupsBtn">메뉴 분류 정리</button>
+    <span class="hint">끌어서 메뉴의 그룹 옮기기, 그룹 이름 바꾸기·추가</span>
+  </div>
 
   <h2>백업</h2>
   <div class="row">
@@ -236,6 +251,7 @@
 <script src="js/menu-presets.js"></script>
 <script src="js/meals.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/menu-groups.js"></script>
 <script type="module" src="js/sync.js"></script>
 </body>
 </html>

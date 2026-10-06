@@ -190,7 +190,8 @@ const groupKey = (c, k, s) => [c, k, s].join('›');
 function menuSubHead(key, name, n, out) {
   const open = !!(prefs.menuOpen || {})[key];
   const head = h('div', 'menu-sub' + (open ? '' : ' folded'));
-  head.append(h('span', 'fold', '▾'), h('span', 'name', name), h('span', 'count', n));
+  head.append(h('span', 'fold', '▾'), h('span', 'name', name), h('span', 'count', n),
+    iconBtn('＋', `‘${name}’에 새 메뉴`, () => newMenu(name)));
   head.title = open ? '접기' : '펼치기';
   head.addEventListener('click', () => {
     const o = { ...prefs.menuOpen };
@@ -240,11 +241,12 @@ function menuRow(x) {
   return li;
 }
 $('menuSearch').addEventListener('input', renderMenus);
-// 새 메뉴는 지금 보고 있는 종류·분류로
+// 새 메뉴는 지금 보고 있는 종류·분류로 (하위분류 제목의 ＋는 그 하위분류까지)
 const known = v => v && v !== NO_CAT ? v : '';
-$('newMenuBtn').addEventListener('click', () => openMenu(newRec('menu', {
-  name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub: '', ingredients: [], recipe: '', link: '',
-})));
+const newMenu = (sub = '') => openMenu(newRec('menu', {
+  name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub, ingredients: [], recipe: '', link: '',
+}));
+$('newMenuBtn').addEventListener('click', () => newMenu());
 
 // 메뉴 편집 창. meal을 주면 저장할 때 그 식단에 이 메뉴를 연결
 const menuForm = $('menuForm');
