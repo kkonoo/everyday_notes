@@ -289,10 +289,11 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .entry:hover .entry-tools { visibility: visible; }
 .entry.editing { cursor: default; }
 .entry.editing .entry-tools { visibility: hidden; }
-@media (hover: none) { .entry-tools, .entry-tools .handle { display: none; } } /* 폰: 끌기는 길게 누른 채로 */
+@media (hover: none), (pointer: coarse) { .entry-tools { display: none; } } /* 갤럭시는 hover: hover 로 잡히기도 해서 pointer도 봄 */
 /* 폰: 길게 누르면 그 항목만 도구가 보임 (notes.js longPress) */
 .entry.show-tools { background: var(--surface-2); }
 .entry.show-tools .entry-tools { display: flex; visibility: visible; }
+.entry.show-tools .entry-tools .handle { display: none; } /* 길게 누르면 ✎ ✕ 만 (끌기는 누른 채로) */
 .entry { -webkit-touch-callout: none; }
 /* 목록: 항목 = 메모 제목. 눌러서 아래에 내용 */
 .entry.memo-item { flex-wrap: wrap; row-gap: 0; }
