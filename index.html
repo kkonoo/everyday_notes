@@ -81,6 +81,7 @@
         <button class="icon-btn small" id="newMenuBtn" title="새 메뉴">＋</button>
       </div>
       <input type="search" class="search-input" id="menuSearch" placeholder="메뉴 찾기" autocomplete="off">
+      <div class="pills" id="menuTags"></div>
       <div class="pills" id="menuCuisines"></div>
       <div class="pills" id="menuCourses"></div>
       <div id="menuList"></div>
@@ -116,6 +117,8 @@
       <datalist id="menuCourseList"></datalist>
       <datalist id="menuSubList"></datalist>
     </div>
+    <label class="field-label">태그 <span class="hint">눌러서 붙이기·떼기 (예: 계절 메뉴, 손님초대)</span></label>
+    <div class="pills tag-pills" id="menuTagPills"><input id="menuTagInput" class="tag-input" placeholder="새 태그" autocomplete="off"></div>
     <label class="field-label">재료 <span class="hint">한 줄에 하나씩 (쉼표로 나눠도 돼요)</span></label>
     <textarea name="ingredients" rows="4" placeholder="예) 두부&#10;대파&#10;고춧가루"></textarea>
     <label class="field-label">만드는 법</label>

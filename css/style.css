@@ -475,7 +475,10 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .search-input:focus { border-color: var(--accent); }
 /* 알약 단추 (메뉴 카테고리, 한 주 식단의 요일·구성) */
 .pills { display: flex; flex-wrap: wrap; gap: 4px; }
-#menuCuisines, #menuCourses { margin-bottom: 8px; }
+#menuTags, #menuCuisines, #menuCourses { margin-bottom: 8px; }
+.tag-pills { margin-top: 6px; }
+.tag-input { width: 96px; padding: 4px 10px; border: 1px dashed var(--line); border-radius: 99px; background: transparent; font-size: 12px; outline: none; }
+.tag-input:focus { border-color: var(--accent); }
 .pills button {
   padding: 4px 10px;
   border: 1px solid var(--line);

@@ -180,6 +180,7 @@ function menuPills(box, values, on, key) {
   box.hidden = values.length < 2;
   box.replaceChildren(...values.map(v => button(v, () => {
     prefs[key] = v;
+    prefs.menuTag = null;
     savePrefs();
     $('menuSearch').value = '';
     renderMenus();
@@ -203,25 +204,38 @@ function menuSubHead(key, name, n, out) {
   out.push(head);
   return open;
 }
-// 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때는 모든 메뉴에서 (다 펼쳐서)
+// 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때·태그를 골랐을 때는 모든 메뉴에서 (다 펼쳐서)
+const tagsOf = x => x.tags || [];
+let menuTag = null; // 보고 있는 태그
 function renderMenus() {
   const q = norm($('menuSearch').value), all = menus();
   const pick = (values, v) => values.includes(v) ? v : values[0];
+  const tags = [...new Set(all.flatMap(tagsOf))].sort(ranker(TAG_PRESETS));
+  menuTag = !q && tags.includes(prefs.menuTag) ? prefs.menuTag : null;
+  $('menuTags').hidden = !tags.length;
+  $('menuTags').replaceChildren(...tags.map(t => button(`#${t}`, () => {
+    prefs.menuTag = t === menuTag ? null : t; // 다시 누르면 태그 보기 끝
+    savePrefs();
+    $('menuSearch').value = '';
+    renderMenus();
+  }, t === menuTag ? 'on' : '')));
+  const flat = q || menuTag;
   const cuisines = groupBy(all, cuisineOf, ranker(CUISINES)).map(([c]) => c);
-  menuCuisine = q ? null : pick(cuisines, prefs.menuCuisine);
+  menuCuisine = flat ? null : pick(cuisines, prefs.menuCuisine);
   const courses = groupBy(all.filter(x => cuisineOf(x) === menuCuisine), courseOf, ranker(COURSE_ORDER)).map(([c]) => c);
-  menuCourse = q ? null : pick(courses, prefs.menuCourse);
+  menuCourse = flat ? null : pick(courses, prefs.menuCourse);
   menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine');
   menuPills($('menuCourses'), courses, menuCourse, 'menuCourse');
-  // 재료로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
-  const list = q ? all.filter(x => norm(x.name).includes(q) || (x.ingredients || []).some(g => norm(g).includes(q)))
+  // 재료·태그로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
+  const list = q ? all.filter(x => [x.name, ...(x.ingredients || []), ...tagsOf(x)].some(v => norm(v).includes(q)))
+    : menuTag ? all.filter(x => tagsOf(x).includes(menuTag))
     : all.filter(x => cuisineOf(x) === menuCuisine && courseOf(x) === menuCourse);
   $('menuCount').textContent = all.length || '';
   const out = [];
   for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
     for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
       for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
-        if (q) out.push(h('div', 'slot-head', [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ')));
+        if (flat) out.push(h('div', 'slot-head', [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ')));
         else if (s && !menuSubHead(groupKey(c, k, s), s, ms.length, out)) continue; // 접힌 하위분류
         const ul = h('ul', 'list');
         ul.append(...ms.map(menuRow));
@@ -241,10 +255,11 @@ function menuRow(x) {
   return li;
 }
 $('menuSearch').addEventListener('input', renderMenus);
-// 새 메뉴는 지금 보고 있는 종류·분류로 (하위분류 제목의 ＋는 그 하위분류까지)
+// 새 메뉴는 지금 보고 있는 종류·분류로 (하위분류 제목의 ＋는 그 하위분류까지, 태그를 보고 있으면 그 태그)
 const known = v => v && v !== NO_CAT ? v : '';
 const newMenu = (sub = '') => openMenu(newRec('menu', {
-  name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub, ingredients: [], recipe: '', link: '',
+  name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub, tags: menuTag ? [menuTag] : [],
+  ingredients: [], recipe: '', link: '',
 }));
 $('newMenuBtn').addEventListener('click', () => newMenu());
 
@@ -270,6 +285,23 @@ function fillCatLists() {
   $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
     ranker(subOrder(course))));
 }
+// 태그: 정해 둔 것 + 메뉴에 붙은 것을 알약으로 (눌러서 붙이기·떼기). 새 태그는 끝 칸에 적고 Enter
+let editTags = [];
+const tagInput = $('menuTagInput');
+function renderTagPills() {
+  const typing = document.activeElement === tagInput;
+  const names = [...new Set([...TAG_PRESETS, ...menus().flatMap(tagsOf), ...editTags])];
+  $('menuTagPills').replaceChildren(...names.map(t => button(`#${t}`, () => {
+    editTags = editTags.includes(t) ? editTags.filter(x => x !== t) : [...editTags, t];
+    renderTagPills();
+  }, editTags.includes(t) ? 'on' : '')), tagInput);
+  if (typing) tagInput.focus();
+}
+onEnter(tagInput, text => {
+  const t = text.replace(/^#/, '');
+  if (t && !editTags.includes(t)) editTags.push(t);
+  renderTagPills();
+});
 function openMenu(menu, meal) {
   editingMenu = menu;
   linkMeal = meal || null;
@@ -278,6 +310,9 @@ function openMenu(menu, meal) {
   menuForm.course.value = menu.course || '';
   menuForm.sub.value = menu.sub || '';
   fillCatLists();
+  editTags = [...tagsOf(menu)];
+  tagInput.value = '';
+  renderTagPills();
   menuForm.ingredients.value = (menu.ingredients || []).join('\n');
   menuForm.recipe.value = menu.recipe || '';
   menuForm.link.value = menu.link || '';
@@ -295,6 +330,8 @@ menuForm.addEventListener('submit', e => {
   m.cuisine = menuForm.cuisine.value.trim();
   m.course = menuForm.course.value.trim();
   m.sub = menuForm.sub.value.trim();
+  const typed = tagInput.value.trim().replace(/^#/, ''); // Enter 없이 적어 둔 태그도
+  m.tags = typed && !editTags.includes(typed) ? [...editTags, typed] : editTags;
   m.ingredients = parseIngredients(menuForm.ingredients.value);
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
