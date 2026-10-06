@@ -16,6 +16,7 @@
   --list-font: 15px; /* 설정 > 글씨 크기에서 바꾸면 app.js가 덮어씀 */
   --tint: 18%;       /* 달력 메뉴 칩 배경 */
   --breakfast: #D9A13B; --lunch: #5B8A5F; --dinner: #7E6FB5; /* 끼니 색: 꿀색 · 세이지 · 라벤더 */
+  --check-ink: 22%; /* 노트 체크 칸 테두리: 파스텔 노트 색을 이만큼 어둡게 (흰 바탕에서 보이게) */
   color-scheme: only light; /* only = 삼성 인터넷 등이 강제로 어둡게 바꾸지 않게 */
 }
 @media (prefers-color-scheme: dark) {
@@ -25,6 +26,7 @@
     --accent: #8DBF90; --accent-soft: #223026; --on-accent: #10140F; --sun: #FF6B6F; --sat: #6FA0FF;
     --shadow: none; --tint: 26%; color-scheme: only dark;
     --breakfast: #E3B45C; --lunch: #8DBF90; --dinner: #A797DE;
+    --check-ink: 0%;
   }
 }
 :root[data-theme="dark"] {
@@ -33,6 +35,7 @@
   --accent: #8DBF90; --accent-soft: #223026; --on-accent: #10140F; --sun: #FF6B6F; --sat: #6FA0FF;
   --shadow: none; --tint: 26%; color-scheme: only dark;
   --breakfast: #E3B45C; --lunch: #8DBF90; --dinner: #A797DE;
+  --check-ink: 0%;
 }
 
 * { box-sizing: border-box; }
@@ -150,6 +153,13 @@ body[data-view="meals"] .meals-view { display: grid; grid-template-columns: minm
 .note-row .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .note-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .note-row .count { font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+/* 노트 카테고리: 목록의 묶음 제목, 설정의 색 점·고르기 */
+.note-cat { margin: 14px 12px 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cat-dot { flex: none; width: 22px; height: 22px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px var(--surface); cursor: pointer; }
+.cat-dot.on { border-color: var(--text); }
+.cat-row { margin: 4px 0; }
+.cat-row .cat-name { flex: 1; min-width: 0; }
+.palette { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px 30px; }
 .note-row .handle { visibility: hidden; }
 .note-row:hover .handle { visibility: visible; }
 .add-note {
@@ -272,16 +282,17 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .entry-input:focus { border-bottom-color: var(--accent); }
 
 /* 체크(네모) = 체크리스트·살 것 / 표시(동그라미) = 장보기 전체에서 '살 것' */
+/* 색 = 노트 색 (#note의 --c: 카테고리 색, 없으면 종류 색). 파스텔이라 체크 표시는 어둡게 */
 .check, .mark {
   position: relative;
   flex: none;
   width: 18px;
   height: 18px;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid color-mix(in srgb, var(--c, var(--accent)), #000 var(--check-ink));
   border-radius: 4px;
 }
 .mark { border-color: var(--faint); border-radius: 50%; }
-.entry.done .check, .entry.need .mark { background: var(--accent); border-color: var(--accent); }
+.entry.done .check, .entry.need .mark { background: var(--c, var(--accent)); border-color: var(--c, var(--accent)); }
 .entry.done .check::after, .entry.need .mark::after {
   content: "";
   position: absolute;
@@ -289,11 +300,11 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
   top: 1px;
   width: 4px;
   height: 9px;
-  border: solid var(--on-accent);
+  border: solid #26282B;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
-.entry.need { background: var(--accent-soft); }
+.entry.need { background: color-mix(in srgb, var(--c, var(--accent)) 18%, transparent); }
 .entry.need .text { font-weight: 600; }
 
 .add-input {

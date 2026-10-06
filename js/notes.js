@@ -7,6 +7,19 @@ const TYPES = {
   check: { name: '체크리스트', color: '#F5D27A' },
   memo: { name: '메모', color: '#C7C1B8' },
 };
+// 내 카테고리: 종류와 따로 노트에 붙이는 묶음 { name, color, order }. 노트 색 = 카테고리 색, 없으면 종류 색 (목록 점·체크 칸)
+const NOTE_COLORS = ['#F2A7A0', '#A8C8F0', '#C3B1E1', '#F5B97A', '#E8A9C9', '#B5D99C', '#D9B99B', '#7FCFB8', '#F5D27A', '#C7C1B8'];
+const noteCats = () => recs('notecat').sort(byOrder);
+const noteCatOf = n => noteCats().find(c => c.id === n.cat) || null;
+const noteColor = n => (noteCatOf(n) || TYPES[n.type]).color;
+function addNoteCat() { // 저장은 부르는 쪽에서
+  const name = (prompt('새 카테고리 이름') || '').trim();
+  if (!name) return null;
+  const cats = noteCats(), used = cats.map(c => c.color);
+  const c = newRec('notecat', { name, color: NOTE_COLORS.find(x => !used.includes(x)) || NOTE_COLORS[0], order: nextOrder(cats) });
+  db.recs.push(c);
+  return c;
+}
 const notes = () => recs('note').sort(byOrder);
 const entriesOf = n => recs('entry').filter(e => e.note === n.id).sort(byOrder);
 const secOf = (n, e) => (n.sections.some(s => s.id === e.section) ? e.section : null);
@@ -44,8 +57,13 @@ $('backBtn').addEventListener('click', () => { notePage = false; editing = false
 function renderNotes() {
   const cur = currentNote(), list = notes();
   document.body.dataset.page = phone() && notePage && cur ? 'note' : 'list';
-  $('noteList').replaceChildren(...(list.length ? list.map(n => noteRow(n, n === cur))
-    : [h('p', 'hint', '‘+ 새 노트’로 장보기·체크리스트·메모를 만들어요.')]));
+  // 카테고리 없는 노트가 위, 그 아래 카테고리별로
+  const out = list.filter(n => !noteCatOf(n)).map(n => noteRow(n, n === cur));
+  for (const c of noteCats()) {
+    const ns = list.filter(n => n.cat === c.id);
+    if (ns.length) out.push(h('div', 'note-cat', c.name), ...ns.map(n => noteRow(n, n === cur)));
+  }
+  $('noteList').replaceChildren(...(list.length ? out : [h('p', 'hint', '‘+ 새 노트’로 장보기·체크리스트·메모를 만들어요.')]));
   renderNote(cur);
 }
 
@@ -58,12 +76,15 @@ function noteCount(n) {
 function noteRow(n, on) {
   const row = h('div', 'note-row' + (on ? ' on' : ''));
   row.dataset.id = n.id;
-  row.style.setProperty('--c', TYPES[n.type].color);
+  row.style.setProperty('--c', noteColor(n));
   const handle = dragHandle();
   row.append(h('span', 'dot'), h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)), handle);
   row.addEventListener('click', e => { if (!e.target.closest('.handle')) openNote(n); });
+  // 다른 카테고리의 노트 위에 놓으면 그 카테고리로
   sortable(handle, row, '.note-row', (t, before) => {
-    reorder(notes(), n, notes().find(x => x.id === t.dataset.id), before);
+    const target = notes().find(x => x.id === t.dataset.id), catId = x => (noteCatOf(x) || {}).id || null;
+    if (catId(n) !== catId(target)) { n.cat = catId(target); touch(n); }
+    reorder(notes(), n, target, before);
     save();
   });
   return row;
@@ -78,6 +99,7 @@ function renderNote(n) {
     box.replaceChildren(e);
     return;
   }
+  box.style.setProperty('--c', noteColor(n)); // 체크 칸 색
   box.replaceChildren(noteHead(n), ...(n.type === 'memo' ? [memoBody(n)] : listBody(n)));
 }
 
@@ -148,6 +170,22 @@ function titleEl(n) {
 
 function editBar(n) {
   const bar = h('div', 'edit-bar');
+  const cs = h('select'); // 카테고리
+  for (const [v, label] of [['', '카테고리 없음'], ...noteCats().map(c => [c.id, c.name]), ['+', '+ 새 카테고리…']]) {
+    const o = h('option', '', label);
+    o.value = v;
+    cs.append(o);
+  }
+  cs.value = (noteCatOf(n) || {}).id || '';
+  cs.title = '카테고리 (설정 › 노트에서 이름·색 바꾸기)';
+  cs.addEventListener('change', () => {
+    const c = cs.value === '+' ? addNoteCat() : noteCats().find(x => x.id === cs.value) || null;
+    if (cs.value === '+' && !c) { cs.value = (noteCatOf(n) || {}).id || ''; return; }
+    n.cat = c ? c.id : null;
+    touch(n);
+    save();
+  });
+  bar.append(cs);
   if (n.type !== 'memo') {
     const sel = h('select');
     for (const t of ['shop', 'check']) { const o = h('option', '', TYPES[t].name); o.value = t; sel.append(o); }
@@ -165,9 +203,48 @@ function editBar(n) {
   bar.append(h('span', 'spacer'), button('복사', () => copyNote(n)), button('노트 삭제', () => deleteNote(n), 'btn danger'));
   return bar;
 }
+// 설정 › 노트 카테고리: 색(점을 누르면 고르기)·이름 바꾸기·지우기 (지우면 그 노트들은 카테고리 없음)
+let pickingCat = null; // 색 고르는 중인 카테고리
+function renderNoteCats() {
+  const out = [], dot = (color, onClick, on) => {
+    const b = button('', onClick, 'cat-dot' + (on ? ' on' : ''));
+    b.style.setProperty('--c', color);
+    return b;
+  };
+  for (const c of noteCats()) {
+    const n = notes().filter(x => x.cat === c.id).length, row = h('div', 'row cat-row');
+    const d = dot(c.color, () => { pickingCat = pickingCat === c.id ? null : c.id; renderNoteCats(); }, pickingCat === c.id);
+    d.title = '색 바꾸기';
+    row.append(d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', () => {
+      const name = (prompt('카테고리 이름', c.name) || '').trim();
+      if (!name || name === c.name) return;
+      c.name = name;
+      touch(c);
+      save();
+      renderNoteCats();
+    }), iconBtn('✕', '카테고리 지우기', () => {
+      if (!confirm(`‘${c.name}’ 카테고리를 지울까요?` + (n ? `\n노트 ${n}개는 카테고리 없이 남아요.` : ''))) return;
+      notes().filter(x => x.cat === c.id).forEach(x => { x.cat = null; touch(x); });
+      remove(c);
+      save();
+      renderNoteCats();
+    }));
+    out.push(row);
+    if (pickingCat === c.id) {
+      const pal = h('div', 'palette');
+      pal.append(...NOTE_COLORS.map(col => dot(col, () => { c.color = col; touch(c); pickingCat = null; save(); renderNoteCats(); }, col === c.color)));
+      out.push(pal);
+    }
+  }
+  if (!out.length) out.push(h('p', 'hint', '카테고리를 만들어 노트에 붙이면 (노트 › 편집) 목록이 카테고리별로 묶이고 그 색이 돼요.'));
+  out.push(button('+ 카테고리', () => { if (addNoteCat()) { save(); renderNoteCats(); } }));
+  $('noteCatManage').replaceChildren(...out);
+}
+$('settingsBtn').addEventListener('click', () => { pickingCat = null; renderNoteCats(); });
+
 // 복사본은 체크를 다 푼 상태로 (여행 짐 → '10월 제주' 같은 새 목록)
 function copyNote(n) {
-  const c = newRec('note', { type: n.type, title: `${n.title} 복사`, text: n.text || '', order: nextOrder(notes()) });
+  const c = newRec('note', { type: n.type, cat: n.cat || null, title: `${n.title} 복사`, text: n.text || '', order: nextOrder(notes()) });
   const ids = {};
   c.sections = n.sections.map(s => { ids[s.id] = uid(); return { id: ids[s.id], name: s.name }; });
   db.recs.push(c);

@@ -16,13 +16,14 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 
 // ---------- 저장소 ----------
 // db.recs = 노트·항목·메뉴·식단을 한 배열에 (kind로 구분). 동기화는 한 줄(rec)씩, updatedAt이 늦은 쪽이 이김
-//   note:  { type: 'shop'|'check'|'memo', title, sections: [{ id, name }], text, order }
+//   note:  { type: 'shop'|'check'|'memo', cat, title, sections: [{ id, name }], text, order }
 //   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
 //   menu:  { name, cuisine, course, sub, tags: [], ingredients: [], recipe, link }   종류 › 분류 › 하위분류 (없으면 ''), tags = 계절·손님초대 등
 //   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
 //   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
+//   notecat: { name, color, order }   노트에 붙이는 내 카테고리 (note.cat = id). 노트 색 = 카테고리 색, 없으면 종류 색
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
