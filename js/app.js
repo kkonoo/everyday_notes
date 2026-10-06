@@ -18,7 +18,7 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 // db.recs = 노트·항목·메뉴·식단을 한 배열에 (kind로 구분). 동기화는 한 줄(rec)씩, updatedAt이 늦은 쪽이 이김
 //   note:  { type: 'shop'|'check'|'memo', title, sections: [{ id, name }], text, order }
 //   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
-//   menu:  { name, ingredients: [], recipe, link }
+//   menu:  { name, cat, sub, ingredients: [], recipe, link }   cat·sub = 분류 (큰 카테고리 › 서브카테고리, 없으면 '')
 //   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게

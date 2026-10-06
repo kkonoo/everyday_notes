@@ -442,7 +442,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .panel-head h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .panel-head .btn, .panel-head .icon-btn { margin-left: auto; }
 .panel-head .count { font-size: 12px; color: var(--muted); }
-.panel .empty { margin: 4px 8px; font-size: 13px; color: var(--faint); }
+.panel .empty { margin: 4px 8px; font-size: 13px; line-height: 1.5; color: var(--faint); }
 .slot-head { margin: 8px 8px 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .slot-head:first-child { margin-top: 0; }
 .meal-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
@@ -457,6 +457,20 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
   outline: none;
 }
 .search-input:focus { border-color: var(--accent); }
+/* 메뉴 카테고리 고르기 */
+.cats { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.cats button {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cats button:hover { background: var(--surface-2); color: var(--text); }
+.cats button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); font-weight: 600; }
 
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .list li {
@@ -528,6 +542,7 @@ textarea:focus { border-color: var(--accent); }
   outline: none;
 }
 .text-input:focus { border-color: var(--accent); }
+.text-input.half { flex-basis: 100px; }
 .pill-link {
   padding: 4px 10px;
   border: 1px solid var(--line);
