@@ -71,7 +71,7 @@ async function start() {
           changed = true;
         }
       }
-      if (changed) { persist(); render(); }
+      if (changed) { if (upgradeMenus()) save(); else { persist(); render(); } } // 옛 분류로 온 메뉴는 바꿔서 다시 올림
       if (!ready && !snap.metadata.fromCache) { ready = true; push(); }
     }, e => console.error('동기화 실패', e));
   }

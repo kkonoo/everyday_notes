@@ -81,7 +81,8 @@
         <button class="icon-btn small" id="newMenuBtn" title="새 메뉴">＋</button>
       </div>
       <input type="search" class="search-input" id="menuSearch" placeholder="메뉴 찾기" autocomplete="off">
-      <div class="pills" id="menuCats"></div>
+      <div class="pills" id="menuCuisines"></div>
+      <div class="pills" id="menuCourses"></div>
       <div id="menuList"></div>
     </section>
   </aside>
@@ -108,9 +109,11 @@
     <input name="name" class="title-input" placeholder="메뉴 이름" required autocomplete="off">
     <div class="row">
       <label>분류</label>
-      <input name="cat" class="text-input half" placeholder="카테고리 (예: 한식)" list="menuCatList" autocomplete="off">
-      <input name="sub" class="text-input half" placeholder="세부 (예: 찌개)" list="menuSubList" autocomplete="off">
-      <datalist id="menuCatList"></datalist>
+      <input name="cuisine" class="text-input third" placeholder="종류 (한식)" list="menuCuisineList" autocomplete="off">
+      <input name="course" class="text-input third" placeholder="분류 (국)" list="menuCourseList" autocomplete="off">
+      <input name="sub" class="text-input third" placeholder="하위 (찌개)" list="menuSubList" autocomplete="off">
+      <datalist id="menuCuisineList"></datalist>
+      <datalist id="menuCourseList"></datalist>
       <datalist id="menuSubList"></datalist>
     </div>
     <label class="field-label">재료 <span class="hint">한 줄에 하나씩 (쉼표로 나눠도 돼요)</span></label>

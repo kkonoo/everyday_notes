@@ -151,12 +151,13 @@ function menuInput(input, box, onPick) {
 menuInput($('mealInput'), $('mealSuggest'), addMeal);
 
 // ---------- 메뉴·레시피 ----------
-// 분류 = 큰 카테고리(cat) › 서브카테고리(sub). 둘 다 비어 있어도 됨 (카테고리가 없으면 '미분류')
-// 순서: 기본 메뉴(menu-presets.js)에 적힌 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 서브카테고리 없는 메뉴는 맨 앞
+// 분류 = 종류(cuisine) › 분류(course) › 하위분류(sub). 비어 있어도 됨 (종류·분류가 없으면 '미분류')
+// 순서: menu-presets.js 의 CUISINES·COURSES 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 하위분류 없는 메뉴는 맨 앞
 const NO_CAT = '미분류';
-const catOf = x => x.cat || NO_CAT;
-const CAT_ORDER = [...new Set(MENU_PRESETS.map(p => p[0]))];
-const subOrder = cat => MENU_PRESETS.filter(p => p[0] === cat).map(p => p[1]);
+const cuisineOf = x => x.cuisine || NO_CAT;
+const courseOf = x => x.course || NO_CAT;
+const COURSE_ORDER = Object.keys(COURSES);
+const subOrder = course => COURSES[course] || [];
 const rankIn = (known, v) => !v ? -1 : known.includes(v) ? known.indexOf(v) : known.length;
 const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
 function groupBy(list, key, order) {
@@ -168,32 +169,42 @@ function groupBy(list, key, order) {
   }
   return [...m].sort((a, b) => order(a[0], b[0]));
 }
-let menuCat = null; // 지금 보고 있는 카테고리 (찾는 중이면 null)
+let menuCuisine = null, menuCourse = null; // 지금 보고 있는 종류·분류 (찾는 중이면 null)
 
-// 카테고리를 골라 그 메뉴만 서브카테고리별로. 찾을 때는 모든 카테고리에서
-function renderMenus() {
-  const q = norm($('menuSearch').value), all = menus();
-  const cats = groupBy(all, catOf, ranker(CAT_ORDER)).map(([c]) => c);
-  menuCat = q ? null : cats.includes(prefs.menuCat) ? prefs.menuCat : cats[0];
-  $('menuCats').hidden = cats.length < 2;
-  $('menuCats').replaceChildren(...cats.map(c => button(c, () => {
-    prefs.menuCat = c;
+// 알약 줄: 누르면 prefs[key]에 기억 (하나뿐이면 숨김)
+function menuPills(box, values, on, key) {
+  box.hidden = values.length < 2;
+  box.replaceChildren(...values.map(v => button(v, () => {
+    prefs[key] = v;
     savePrefs();
     $('menuSearch').value = '';
     renderMenus();
-  }, c === menuCat ? 'on' : '')));
+  }, v === on ? 'on' : '')));
+}
+// 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때는 모든 메뉴에서
+function renderMenus() {
+  const q = norm($('menuSearch').value), all = menus();
+  const pick = (values, v) => values.includes(v) ? v : values[0];
+  const cuisines = groupBy(all, cuisineOf, ranker(CUISINES)).map(([c]) => c);
+  menuCuisine = q ? null : pick(cuisines, prefs.menuCuisine);
+  const courses = groupBy(all.filter(x => cuisineOf(x) === menuCuisine), courseOf, ranker(COURSE_ORDER)).map(([c]) => c);
+  menuCourse = q ? null : pick(courses, prefs.menuCourse);
+  menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine');
+  menuPills($('menuCourses'), courses, menuCourse, 'menuCourse');
   // 재료로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
   const list = q ? all.filter(x => norm(x.name).includes(q) || (x.ingredients || []).some(g => norm(g).includes(q)))
-    : all.filter(x => catOf(x) === menuCat);
+    : all.filter(x => cuisineOf(x) === menuCuisine && courseOf(x) === menuCourse);
   $('menuCount').textContent = all.length || '';
   const out = [];
-  for (const [c, inCat] of groupBy(list, catOf, ranker(CAT_ORDER))) {
-    for (const [s, ms] of groupBy(inCat, x => x.sub || '', ranker(subOrder(c)))) {
-      const head = q ? [c, s].filter(Boolean).join(' › ') : s;
-      if (head) out.push(h('div', 'slot-head', head));
-      const ul = h('ul', 'list');
-      ul.append(...ms.map(menuRow));
-      out.push(ul);
+  for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
+    for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
+      for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
+        const head = q ? [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ') : s;
+        if (head) out.push(h('div', 'slot-head', head));
+        const ul = h('ul', 'list');
+        ul.append(...ms.map(menuRow));
+        out.push(ul);
+      }
     }
   }
   $('menuList').replaceChildren(...(out.length ? out
@@ -208,9 +219,10 @@ function menuRow(x) {
   return li;
 }
 $('menuSearch').addEventListener('input', renderMenus);
-// 새 메뉴는 지금 보고 있는 카테고리로
+// 새 메뉴는 지금 보고 있는 종류·분류로
+const known = v => v && v !== NO_CAT ? v : '';
 $('newMenuBtn').addEventListener('click', () => openMenu(newRec('menu', {
-  name: '', cat: menuCat && menuCat !== NO_CAT ? menuCat : '', sub: '', ingredients: [], recipe: '', link: '',
+  name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub: '', ingredients: [], recipe: '', link: '',
 })));
 
 // 메뉴 편집 창. meal을 주면 저장할 때 그 식단에 이 메뉴를 연결
@@ -222,22 +234,25 @@ function syncMenuLink() {
   $('menuLinkOpen').hidden = !/^https?:\/\//.test(v);
   $('menuLinkOpen').href = v;
 }
-// 분류 칸 자동완성: 있는 카테고리, 고른 카테고리의 서브카테고리
+// 분류 칸 자동완성: 정해 둔 것 + 메뉴에 적힌 것. 하위분류는 고른 분류의 것
 function fillCatLists() {
-  const all = menus(), cat = menuForm.cat.value.trim();
+  const all = menus(), course = menuForm.course.value.trim();
   const options = (values, order) => [...new Set(values.filter(Boolean))].sort(order).map(v => {
     const o = h('option');
     o.value = v;
     return o;
   });
-  $('menuCatList').replaceChildren(...options(all.map(x => x.cat), ranker(CAT_ORDER)));
-  $('menuSubList').replaceChildren(...options(all.filter(x => x.cat === cat).map(x => x.sub), ranker(subOrder(cat))));
+  $('menuCuisineList').replaceChildren(...options([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES)));
+  $('menuCourseList').replaceChildren(...options([...COURSE_ORDER, ...all.map(x => x.course)], ranker(COURSE_ORDER)));
+  $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
+    ranker(subOrder(course))));
 }
 function openMenu(menu, meal) {
   editingMenu = menu;
   linkMeal = meal || null;
   menuForm.name.value = menu.name;
-  menuForm.cat.value = menu.cat || '';
+  menuForm.cuisine.value = menu.cuisine || '';
+  menuForm.course.value = menu.course || '';
   menuForm.sub.value = menu.sub || '';
   fillCatLists();
   menuForm.ingredients.value = (menu.ingredients || []).join('\n');
@@ -249,19 +264,20 @@ function openMenu(menu, meal) {
   if (!menu.name) menuForm.name.focus();
 }
 menuForm.link.addEventListener('input', syncMenuLink);
-menuForm.cat.addEventListener('input', fillCatLists);
+menuForm.course.addEventListener('input', fillCatLists);
 menuForm.addEventListener('submit', e => {
   e.preventDefault();
   const m = editingMenu;
   m.name = menuForm.name.value.trim();
-  m.cat = menuForm.cat.value.trim();
+  m.cuisine = menuForm.cuisine.value.trim();
+  m.course = menuForm.course.value.trim();
   m.sub = menuForm.sub.value.trim();
   m.ingredients = parseIngredients(menuForm.ingredients.value);
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
   touch(m);
-  // 새 메뉴는 목록에서 그 카테고리를 열어 보여줌
-  if (!db.recs.includes(m)) { db.recs.push(m); prefs.menuCat = catOf(m); savePrefs(); }
+  // 새 메뉴는 목록에서 그 종류·분류를 열어 보여줌
+  if (!db.recs.includes(m)) { db.recs.push(m); prefs.menuCuisine = cuisineOf(m); prefs.menuCourse = courseOf(m); savePrefs(); }
   if (linkMeal && linkMeal.menu !== m.id) { linkMeal.menu = m.id; touch(linkMeal); }
   $('menuEditor').close();
   save();
@@ -290,17 +306,48 @@ $('weekShopBtn').addEventListener('click', () => {
   addToShop(names, `${range} 식단 재료`);
 });
 
-// 설정 > 기본 메뉴 넣기 (menu-presets.js). 이름이 같은 메뉴는 건너뛰고, 그 메뉴에 분류가 없으면 분류만 채움
+// 기본 메뉴(menu-presets.js) 하나씩 { name, note, cuisine, course, sub }
+const presetMenus = () => MENU_PRESETS.flatMap(([cuisine, course, sub, names]) => names.split(',').map(item => {
+  const [, name, note] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?$/); // '김치찌개(참치/…)' → 이름, 메모
+  return { name, note, cuisine, course, sub };
+}));
+
+// 옛 분류(카테고리 cat › 서브카테고리 sub, 2026-10-06 하루 씀)를 새 분류로. 이 기기 데이터를 읽을 때와 계정에서 받을 때
+// 기본 메뉴에 있는 이름이면 그 분류, 아니면 옛 카테고리로 짐작. 바꾼 개수를 돌려줌 (저장은 부르는 쪽에서)
+function oldClass(cat = '', sub = '') {
+  if (cat === '한식') {
+    const course = { 밥: '밥·면', 한그릇: '밥·면', 국밥: '밥·면', 면: '밥·면', '전·부침': '밥·면', 국: '국', 찌개: '국', '탕·전골': '국' }[sub];
+    return ['한식', course || (sub ? '메인' : ''), { 한그릇: '밥', '전·부침': '기타' }[sub] || sub];
+  }
+  if (cat === '반찬') return sub === '단백질' ? ['한식', '메인', '기타'] : ['한식', '반찬', sub];
+  if (cat === '유아식') return ['한식', '유아식', sub];
+  return [cat === '분식·배달' ? '분식' : cat, '', sub];
+}
+function upgradeMenus() {
+  const preset = new Map(presetMenus().map(p => [norm(p.name), p]));
+  let n = 0;
+  for (const x of db.recs) {
+    if (x.kind !== 'menu' || !('cat' in x)) continue;
+    if (!('cuisine' in x)) {
+      const p = preset.get(norm(x.name));
+      [x.cuisine, x.course, x.sub] = p ? [p.cuisine, p.course, p.sub] : oldClass(x.cat, x.sub);
+    }
+    delete x.cat;
+    touch(x);
+    n++;
+  }
+  return n;
+}
+if (upgradeMenus()) persist();
+
+// 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴는 건너뛰고, 그 메뉴에 분류가 없으면 분류만 채움
 $('presetBtn').addEventListener('click', () => {
   const have = new Map(recs('menu').map(x => [norm(x.name), x]));
   const add = [], fill = [];
-  for (const [cat, sub, names] of MENU_PRESETS) {
-    for (const item of names.split(',')) {
-      const [, name, note] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?$/); // '김치찌개(참치/…)' → 이름, 메모
-      const x = have.get(norm(name));
-      if (!x) add.push(newRec('menu', { name, cat, sub, ingredients: [], recipe: note || '', link: '' }));
-      else if (!x.cat) fill.push([x, cat, sub]);
-    }
+  for (const p of presetMenus()) {
+    const x = have.get(norm(p.name));
+    if (!x) add.push(newRec('menu', { name: p.name, cuisine: p.cuisine, course: p.course, sub: p.sub, ingredients: [], recipe: p.note || '', link: '' }));
+    else if (!x.cuisine && !x.course) fill.push([x, p]);
   }
   if (!add.length && !fill.length) { toast('기본 메뉴가 이미 모두 있어요'); return; }
   const lines = [];
@@ -308,7 +355,7 @@ $('presetBtn').addEventListener('click', () => {
   if (fill.length) lines.push(`이미 있는 메뉴 ${fill.length}개는 분류만 채워요.`);
   if (!confirm(`${lines.join('\n')}\n계속할까요?`)) return;
   db.recs.push(...add);
-  for (const [x, cat, sub] of fill) { x.cat = cat; x.sub = sub; touch(x); }
+  for (const [x, p] of fill) { [x.cuisine, x.course, x.sub] = [p.cuisine, p.course, p.sub]; touch(x); }
   $('settings').close();
   save();
   toast(`메뉴 ${add.length + fill.length}개를 정리했어요`);

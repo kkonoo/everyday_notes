@@ -15,6 +15,7 @@
   --radius: 14px;
   --list-font: 15px; /* 설정 > 글씨 크기에서 바꾸면 app.js가 덮어씀 */
   --tint: 18%;       /* 달력 메뉴 칩 배경 */
+  --breakfast: #D9A13B; --lunch: #5B8A5F; --dinner: #7E6FB5; /* 끼니 색: 꿀색 · 세이지 · 라벤더 */
   color-scheme: only light; /* only = 삼성 인터넷 등이 강제로 어둡게 바꾸지 않게 */
 }
 @media (prefers-color-scheme: dark) {
@@ -23,6 +24,7 @@
     --text: #ECECEE; --muted: #8E8E95; --faint: #5C5C63;
     --accent: #8DBF90; --accent-soft: #223026; --on-accent: #10140F; --sun: #FF6B6F; --sat: #6FA0FF;
     --shadow: none; --tint: 26%; color-scheme: only dark;
+    --breakfast: #E3B45C; --lunch: #8DBF90; --dinner: #A797DE;
   }
 }
 :root[data-theme="dark"] {
@@ -30,6 +32,7 @@
   --text: #ECECEE; --muted: #8E8E95; --faint: #5C5C63;
   --accent: #8DBF90; --accent-soft: #223026; --on-accent: #10140F; --sun: #FF6B6F; --sat: #6FA0FF;
   --shadow: none; --tint: 26%; color-scheme: only dark;
+  --breakfast: #E3B45C; --lunch: #8DBF90; --dinner: #A797DE;
 }
 
 * { box-sizing: border-box; }
@@ -418,7 +421,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
   flex: none;
   padding: 0 5px;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--accent) var(--tint), transparent);
+  background: color-mix(in srgb, var(--slot, var(--accent)) var(--tint), transparent);
   font-size: 13px;
   line-height: 1.6;
   white-space: nowrap;
@@ -426,6 +429,11 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
   text-overflow: ellipsis;
 }
 .more { font-size: 12px; color: var(--muted); padding-left: 6px; }
+/* 끼니 색: 달력 칩 배경, 그날 식단의 끼니 제목 앞 점 */
+.slot-b { --slot: var(--breakfast); }
+.slot-l { --slot: var(--lunch); }
+.slot-d { --slot: var(--dinner); }
+.slot-dot::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--slot); }
 
 /* ---------- 식단: 오른쪽 ---------- */
 .side { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -461,7 +469,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .search-input:focus { border-color: var(--accent); }
 /* 알약 단추 (메뉴 카테고리, 한 주 식단의 요일·구성) */
 .pills { display: flex; flex-wrap: wrap; gap: 4px; }
-#menuCats { margin-bottom: 8px; }
+#menuCuisines, #menuCourses { margin-bottom: 8px; }
 .pills button {
   padding: 4px 10px;
   border: 1px solid var(--line);
@@ -545,7 +553,7 @@ textarea:focus { border-color: var(--accent); }
   outline: none;
 }
 .text-input:focus { border-color: var(--accent); }
-.text-input.half { flex-basis: 100px; }
+.text-input.third { flex-basis: 70px; }
 .pill-link {
   padding: 4px 10px;
   border: 1px solid var(--line);

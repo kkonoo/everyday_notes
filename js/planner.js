@@ -5,12 +5,12 @@
 //  - 직접 고르기: 적은 메뉴를 고른 요일마다 (예: 아침 요거트)
 // 이미 그 끼니에 같은 메뉴가 있으면 건너뜀. meals.js 의 menus, pushMeal, mealsOn 등을 그대로 사용
 
-// 추천 칸마다 고르는 곳 [카테고리, 서브카테고리]
+// 추천 칸마다 고르는 곳: 한식(종류가 비어 있어도)의 분류 › 하위분류
 const PARTS = [
-  { key: 'rice', label: '밥', from: [['한식', '밥']] },
-  { key: 'soup', label: '국', from: [['한식', '국'], ['한식', '찌개']] },
-  { key: 'side', label: '반찬', from: [['반찬', '볶음'], ['반찬', '무침'], ['반찬', '나물'], ['반찬', '기타']] },
-  { key: 'main', label: '메인', from: [['반찬', '단백질'], ['한식', '구이'], ['한식', '볶음'], ['한식', '찜']] },
+  { key: 'rice', label: '밥', course: '밥·면', subs: ['밥'] },
+  { key: 'soup', label: '국', course: '국', subs: ['국', '찌개'] },
+  { key: 'side', label: '반찬', course: '반찬', subs: ['볶음', '무침', '나물', '기타'] },
+  { key: 'main', label: '메인', course: '메인', subs: ['구이', '볶음', '찜', '조림'] },
 ];
 // 기기별 설정 (끼니는 방식마다 따로: 추천은 보통 저녁, 직접은 보통 아침)
 const plan = () => ({
@@ -41,7 +41,7 @@ function seasonal(x) {
 }
 
 // ---------- 뽑기 ----------
-const inPart = (p, x) => p.from.some(([c, s]) => x.cat === c && (x.sub || '') === s);
+const inPart = (p, x) => (x.cuisine || '한식') === '한식' && x.course === p.course && p.subs.includes(x.sub || '');
 const usedIn = key => picks.flatMap(d => [].concat(d[key])).filter(Boolean);
 const shuffle = a => {
   for (let i = a.length - 1; i > 0; i--) {
