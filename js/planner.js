@@ -206,7 +206,7 @@ $('planSeason').addEventListener('change', e => {
   rollAll();
   renderPlan();
 });
-// 제철 재료 고치기: 그 달 것만 계정에 저장 (안 고친 달은 기본값)
+// 제철 재료 편집: 그 달 것만 계정에 저장 (안 고친 달은 기본값)
 $('planSeasonEdit').addEventListener('click', () => {
   const t = $('planSeasonText');
   t.hidden = !t.hidden;
