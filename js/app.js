@@ -84,7 +84,9 @@ function suggestBtn(label, onPick, cls = '') {
   return b;
 }
 // Enter로 추가 (한글 조합 중 Enter는 무시)
+// 폰 키보드는 아래에 입력칸이 더 있으면 '다음'을 보여주는데, 그건 Enter가 아니라 커서만 다음 칸으로 옮김 → ↵ 로
 function onEnter(input, fn) {
+  input.enterKeyHint = 'enter';
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.isComposing) return;
     e.preventDefault();
@@ -96,6 +98,7 @@ function onEnter(input, fn) {
 }
 // Enter = 입력 끝 (change 이벤트로 저장)
 function enterBlurs(input) {
+  input.enterKeyHint = 'done';
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); input.blur(); } });
 }
 const phone = () => matchMedia('(max-width: 900px)').matches;

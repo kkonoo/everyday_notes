@@ -291,6 +291,7 @@ let addedBack = null; // 방금 추가한 항목의 계획 칸에서 Enter → �
 function amtInput(key, col, value, auto, onSet) {
   const input = h('input', 'amt');
   input.inputMode = 'tel'; // 폰: 숫자판 (+ 도 있음)
+  input.enterKeyHint = 'enter'; // 폰 키보드의 '다음'은 옆 칸으로 가서, ↵ 로 아래 칸으로
   input.autocomplete = 'off';
   input.dataset.key = key;
   input.dataset.col = col;

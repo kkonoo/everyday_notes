@@ -41,8 +41,9 @@ function renderMeals() {
 const REP = ['메인', '국', '반찬', '밥·면'];
 const repRank = m => { const i = REP.indexOf((menuOf(m) || {}).course); return i < 0 ? REP.length : i; };
 const slotsOn = s => [...SLOT_ORDER].map(k => mealsOn(s).filter(m => m.slot === k)).filter(ms => ms.length);
-function renderGrid() {
-  const grid = $('grid'), today = todayStr(), v = view;
+// grid·v: 폰에서 밀 때 옆 달을 미리 그리는 칸(.grid.peek)과 그 달
+function renderGrid(grid = $('grid'), v = view) {
+  const today = todayStr();
   const first = toNum(`${v.y}-${pad(v.m)}-01`), start = first - weekday(first);
   const weeks = Math.ceil((weekday(first) + new Date(Date.UTC(v.y, v.m, 0)).getUTCDate()) / 7);
   grid.style.gridTemplateRows = phone() ? '' : `repeat(${weeks}, minmax(0, 1fr))`; // 폰: 칸이 내용만큼 늘어남
@@ -83,17 +84,77 @@ function renderGrid() {
 $('prevBtn').addEventListener('click', () => { if (prefs.view === 'meals') shiftMonth(-1); });
 $('nextBtn').addEventListener('click', () => { if (prefs.view === 'meals') shiftMonth(1); });
 $('todayBtn').addEventListener('click', () => { if (prefs.view === 'meals') select(todayStr()); });
-// 폰: 달력을 옆으로 밀면 달 넘기기
-let swipe0 = null;
-$('grid').addEventListener('touchstart', e => {
-  swipe0 = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
-}, { passive: true });
-$('grid').addEventListener('touchend', e => {
-  if (!swipe0) return;
-  const t = e.changedTouches[0], dx = t.clientX - swipe0.x, dy = t.clientY - swipe0.y;
-  swipe0 = null;
-  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
+// 폰: 달력을 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달 (세로 스크롤은 그대로). 옆 달이 붙어서 같이 밀림 (캘린더x플래너와 같음)
+let swipe = null;
+// el을 x만큼 ms 동안 옮김 (0이면 바로). 앞 위치를 먼저 적용해야 움직임이 보여서 offsetWidth로 확정
+const slideTo = (el, x, ms) => new Promise(done => {
+  el.offsetWidth;
+  el.style.transition = ms ? `transform ${ms}ms ease-out` : 'none';
+  el.style.transform = x ? `translateX(${x}px)` : '';
+  ms ? setTimeout(done, ms) : done();
 });
+// 옆 달(d = -1 / 1)을 달력 옆에 미리 그려 둠
+function peekMonth(d) {
+  const g = $('grid'), p = h('div', 'grid peek'), t = new Date(Date.UTC(view.y, view.m - 1 + d, 1));
+  Object.assign(p.style, { position: 'absolute', left: 0, right: 0, top: `${g.offsetTop}px`, transform: `translateX(${d * g.offsetWidth}px)` });
+  if (g.style.gridTemplateRows) p.style.height = `${g.offsetHeight}px`;
+  g.after(p);
+  renderGrid(p, { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1 });
+  return p;
+}
+let swipeBusy = false; // 넘기는 움직임이 끝나기 전에는 새로 밀기 무시
+$('grid').addEventListener('touchstart', e => {
+  if (swipe) return endSwipe(true); // 두 번째 손가락이 닿으면 제자리로
+  if (e.touches.length !== 1 || swipeBusy) return;
+  const t = e.touches[0];
+  swipe = { x: t.clientX, y: t.clientY, dx: 0, side: null };
+  // 손가락을 뗄 때까지의 이벤트는 처음 닿은 칸으로 옴 → 중간에 달력을 다시 그려 그 칸이 빠져도 받도록 칸에 직접 붙임
+  const el = e.target;
+  const stop = cancel => () => {
+    el.removeEventListener('touchmove', moveSwipe);
+    el.removeEventListener('touchend', end);
+    el.removeEventListener('touchcancel', cancelled);
+    endSwipe(cancel);
+  };
+  const end = stop(false), cancelled = stop(true);
+  el.addEventListener('touchmove', moveSwipe, { passive: true });
+  el.addEventListener('touchend', end);
+  el.addEventListener('touchcancel', cancelled);
+}, { passive: true });
+function moveSwipe(e) {
+  if (!swipe) return;
+  const t = e.touches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
+  // 처음 10px 움직인 방향으로 가로 밀기인지 세로 스크롤인지 정함
+  if (swipe.side === null && Math.hypot(dx, dy) > 10) {
+    swipe.side = Math.abs(dx) > Math.abs(dy) * 1.5;
+    if (swipe.side) swipe.peek = { '-1': peekMonth(-1), 1: peekMonth(1) };
+  }
+  if (!swipe.side) return;
+  swipe.dx = dx;
+  const g = $('grid'), w = g.offsetWidth;
+  slideTo(g, dx, 0);
+  for (const d of [-1, 1]) slideTo(swipe.peek[d], d * w + dx, 0);
+}
+const endSwipe = async cancel => {
+  if (!swipe) return;
+  const { dx, side, peek } = swipe;
+  swipe = null;
+  if (!side) return;
+  swipeBusy = true;
+  try { await finishSwipe(dx, peek, cancel); } finally { swipeBusy = false; }
+};
+// 옆 달이 마저 들어오거나(넘김), 조금만 밀었거나 끊기면 제자리로
+async function finishSwipe(dx, peek, cancel) {
+  const g = $('grid'), w = g.offsetWidth, go = !cancel && Math.abs(dx) >= 60, d = dx < 0 ? 1 : -1;
+  const ms = go ? 160 : 140, shift = go ? -d * w : 0;
+  slideTo(peek[-1], -w + shift, ms);
+  slideTo(peek[1], w + shift, ms);
+  await slideTo(g, shift, ms);
+  if (go) shiftMonth(d);
+  slideTo(g, 0, 0);
+  peek[-1].remove();
+  peek[1].remove();
+}
 
 // ---------- 그날 식단 ----------
 function renderDay() {

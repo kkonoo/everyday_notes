@@ -169,6 +169,7 @@ function titleEl(n) {
       if (v && v !== n.title) { n.title = v; touch(n); save(); } else render();
     };
     input.addEventListener('blur', finish);
+    input.enterKeyHint = 'done'; // 폰 키보드에 '다음' 대신 '완료'
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); input.blur(); }
       if (e.key === 'Escape') { input.value = n.title; input.blur(); }
@@ -531,6 +532,7 @@ function editText(li, e) {
     if (ok && v && v !== e.text) { e.text = v; touch(e); save(); } else render();
   };
   input.addEventListener('click', ev => ev.stopPropagation());
+  input.enterKeyHint = 'done'; // 폰 키보드에 '다음' 대신 '완료'
   input.addEventListener('keydown', ev => {
     if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); finish(true); }
     if (ev.key === 'Escape') finish(false);
