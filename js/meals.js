@@ -1,9 +1,10 @@
 'use strict';
 // 식단: 달력(하루 칸 = 그날 메뉴) + 그날 식단 + 메뉴·레시피 목록
-// 아침·점심·저녁은 넣을 때만 고르고, 달력 칸에는 끼니마다 대표 메뉴 하나만 (끼니 색으로)
+// 아침·점심·간식·저녁·야식은 넣을 때만 고르고, 달력 칸에는 끼니마다 대표 메뉴 하나만 (끼니 색으로)
 // 메뉴에 재료를 적어 두면 '재료 → 장보기'로 장보기 노트의 '살 것'에 표시
-const SLOTS = { b: '아침', l: '점심', d: '저녁' };
-const slotRank = m => 'bld'.indexOf(m.slot);
+const SLOTS = { b: '아침', l: '점심', s: '간식', d: '저녁', n: '야식' };
+const SLOT_ORDER = 'blsdn';
+const slotRank = m => SLOT_ORDER.indexOf(m.slot);
 const slot = () => prefs.slot || 'd';
 const menus = () => recs('menu').sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 const mealsOn = s => recs('meal').filter(m => m.date === s).sort((a, b) => slotRank(a) - slotRank(b) || byOrder(a, b));
@@ -39,7 +40,7 @@ function renderMeals() {
 // 칸에는 끼니마다 대표 메뉴 하나 (끼니 색으로). 대표: 메인 > 국 > 반찬 > 밥·면 > 그 밖, 같으면 먼저 넣은 것
 const REP = ['메인', '국', '반찬', '밥·면'];
 const repRank = m => { const i = REP.indexOf((menuOf(m) || {}).course); return i < 0 ? REP.length : i; };
-const slotsOn = s => [...'bld'].map(k => mealsOn(s).filter(m => m.slot === k)).filter(ms => ms.length);
+const slotsOn = s => [...SLOT_ORDER].map(k => mealsOn(s).filter(m => m.slot === k)).filter(ms => ms.length);
 function renderGrid() {
   const grid = $('grid'), today = todayStr(), v = view;
   const first = toNum(`${v.y}-${pad(v.m)}-01`), start = first - weekday(first);
@@ -97,7 +98,7 @@ $('grid').addEventListener('touchend', e => {
 function renderDay() {
   $('dayTitle').textContent = fmtDay(selected) + (HOLIDAYS[selected] ? ` · ${HOLIDAYS[selected]}` : '');
   const list = mealsOn(selected), out = [];
-  for (const k of 'bld') {
+  for (const k of SLOT_ORDER) {
     const ms = list.filter(m => m.slot === k);
     if (!ms.length) continue;
     const ul = h('ul', 'list');

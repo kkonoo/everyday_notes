@@ -19,7 +19,7 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   note:  { type: 'shop'|'check'|'memo', cat, title, sections: [{ id, name }], text, order }
 //   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
 //   menu:  { name, cuisine, course, sub, tags: [], ingredients: [], recipe, link }   종류 › 분류 › 하위분류 (없으면 ''), tags = 계절·손님초대 등
-//   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
+//   meal:  { date, slot: 'b'|'l'|'s'|'d'|'n' (아침·점심·간식·저녁·야식), name, menu, order }
 //   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
