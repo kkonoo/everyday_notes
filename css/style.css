@@ -479,6 +479,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .pills { display: flex; flex-wrap: wrap; gap: 4px; }
 #menuTags, #menuCuisines, #menuCourses { margin-bottom: 8px; }
 .tag-pills { margin-top: 6px; }
+#tagManage { flex: 1; min-width: 0; }
 .tag-input { width: 96px; padding: 4px 10px; border: 1px dashed var(--line); border-radius: 99px; background: transparent; font-size: 12px; outline: none; }
 .tag-input:focus { border-color: var(--accent); }
 .pills button {

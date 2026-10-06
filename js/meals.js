@@ -349,12 +349,24 @@ function fillCatLists() {
   $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
     ranker(subOrder(course))));
 }
-// 태그: 정해 둔 것 + 메뉴에 붙은 것을 알약으로 (눌러서 붙이기·떼기). 새 태그는 끝 칸에 적고 Enter
+// 태그 고르는 목록 = 정해 둔 것(TAG_PRESETS, 설정에서 지운 것은 빼고) + 메뉴에 붙은 것
+// 지운 기본 태그는 계정에 저장 (id 고정 rec 하나라 기기끼리 겹치지 않음)
+const TAGS_ID = 'menu-tags';
+const hiddenTags = () => (recs('tags').find(r => r.id === TAGS_ID) || {}).hidden || [];
+function setHiddenTags(list) { // 저장은 부르는 쪽에서
+  let r = db.recs.find(x => x.id === TAGS_ID);
+  if (!r) { r = { ...newRec('tags', {}), id: TAGS_ID }; db.recs.push(r); }
+  r.hidden = list;
+  touch(r);
+}
+const tagChoices = () => [...new Set([...TAG_PRESETS.filter(t => !hiddenTags().includes(t)), ...menus().flatMap(tagsOf)])]
+  .sort(ranker(TAG_PRESETS));
+// 편집 창 태그: 알약을 눌러서 붙이기·떼기. 새 태그는 끝 칸에 적고 Enter
 let editTags = [];
 const tagInput = $('menuTagInput');
 function renderTagPills() {
   const typing = document.activeElement === tagInput;
-  const names = [...new Set([...TAG_PRESETS, ...menus().flatMap(tagsOf), ...editTags])];
+  const names = [...new Set([...tagChoices(), ...editTags])];
   $('menuTagPills').replaceChildren(...names.map(t => button(`#${t}`, () => {
     editTags = editTags.includes(t) ? editTags.filter(x => x !== t) : [...editTags, t];
     renderTagPills();
@@ -397,6 +409,7 @@ menuForm.addEventListener('submit', e => {
   m.sub = menuForm.sub.value.trim();
   const typed = tagInput.value.trim().replace(/^#/, ''); // Enter 없이 적어 둔 태그도
   m.tags = typed && !editTags.includes(typed) ? [...editTags, typed] : editTags;
+  if (m.tags.some(t => hiddenTags().includes(t))) setHiddenTags(hiddenTags().filter(t => !m.tags.includes(t))); // 지웠던 기본 태그를 다시 쓰면
   m.ingredients = parseIngredients(menuForm.ingredients.value);
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
@@ -414,6 +427,26 @@ menuForm.addEventListener('submit', e => {
   save();
 });
 $('menuCancel').addEventListener('click', () => $('menuEditor').close());
+
+// 설정 › 메뉴 태그: ✕로 지우기 (모든 메뉴에서 떼고, 기본 태그면 고르는 목록에서도 뺌)
+function renderTagManage() {
+  const tags = tagChoices();
+  $('tagManage').replaceChildren(...(tags.length ? tags.map(t => {
+    const n = menus().filter(x => tagsOf(x).includes(t)).length, b = button(`#${t} ${n} ✕`, () => deleteTag(t));
+    b.title = '이 태그 지우기';
+    return b;
+  }) : [h('span', 'hint', '태그가 없어요')]));
+}
+function deleteTag(t) {
+  const ms = menus().filter(x => tagsOf(x).includes(t));
+  if (!confirm(`‘#${t}’ 태그를 지울까요?` + (ms.length ? `
+메뉴 ${ms.length}개에서 떼요.` : ''))) return;
+  for (const x of ms) { x.tags = tagsOf(x).filter(v => v !== t); touch(x); }
+  if (TAG_PRESETS.includes(t) && !hiddenTags().includes(t)) setHiddenTags([...hiddenTags(), t]);
+  save();
+  renderTagManage();
+}
+$('settingsBtn').addEventListener('click', renderTagManage);
 $('menuDelBtn').addEventListener('click', () => {
   if (!confirm(`‘${editingMenu.name}’ 메뉴를 지울까요? 달력에 넣은 식단은 이름만 남아요.`)) return;
   remove(editingMenu);

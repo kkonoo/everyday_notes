@@ -22,6 +22,7 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
 //   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
+//   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
