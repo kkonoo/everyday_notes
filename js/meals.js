@@ -174,25 +174,71 @@ function groupBy(list, key, order) {
   return [...m].sort((a, b) => order(a[0], b[0]));
 }
 let menuCuisine = null, menuCourse = null; // 지금 보고 있는 종류·분류 (찾는 중이면 null)
+const known = v => v && v !== NO_CAT ? v : '';
 
-// 알약 줄: 누르면 prefs[key]에 기억 (하나뿐이면 숨김)
-function menuPills(box, values, on, key) {
-  box.hidden = values.length < 2;
-  box.replaceChildren(...values.map(v => button(v, () => {
+// 그룹 = 종류 › 분류 › 하위분류 경로 (앞쪽 일부만이어도 됨). 메뉴마다 적힌 분류 값으로 정해지고,
+// 직접 만든 빈 그룹(설정 › 메뉴 분류 정리의 ＋)만 따로 계정에 저장 (id 고정 rec 하나라 기기끼리 겹치지 않음)
+const LEVELS = ['cuisine', 'course', 'sub'];
+const GROUPS_ID = 'menu-groups';
+const pkey = p => p.join('›');
+const pathOf = x => LEVELS.map(f => x[f] || '');
+const startsWith = (p, q) => q.every((v, i) => p[i] === v); // p가 q 그룹 안
+const menusIn = p => menus().filter(x => startsWith(pathOf(x), p));
+const extraGroups = () => (recs('groups').find(r => r.id === GROUPS_ID) || {}).paths || [];
+function setExtraGroups(paths) { // 저장은 부르는 쪽에서
+  let r = db.recs.find(x => x.id === GROUPS_ID);
+  if (!r) { r = { ...newRec('groups', {}), id: GROUPS_ID }; db.recs.push(r); }
+  r.paths = paths;
+  touch(r);
+}
+// 그룹 p 바로 아래 그룹 이름들 (메뉴에 적힌 것 + 직접 만든 것)
+function childrenOf(p) {
+  const L = p.length, names = new Set();
+  if (L === 3) return [];
+  menusIn(p).forEach(x => names.add(x[LEVELS[L]] || ''));
+  extraGroups().filter(q => q.length > L && startsWith(q, p)).forEach(q => names.add(q[L]));
+  names.delete('');
+  return [...names].sort(L === 0 ? ranker(CUISINES) : L === 1 ? ranker(COURSE_ORDER) : ranker(subOrder(p[1])));
+}
+// 메뉴 하나를 그룹 p로 (메뉴·레시피에서 ⋮⋮로 끌어 놓기). 종류·분류에 놓으면 아래 분류가 거기에도 있을 때만 그대로
+function moveMenu(x, p) {
+  const to = [...p];
+  let keep = true;
+  while (to.length < 3) {
+    const v = x[LEVELS[to.length]] || '';
+    keep = keep && !!v && childrenOf(to).includes(v);
+    to.push(keep ? v : '');
+  }
+  if (pkey(to) === pkey(pathOf(x))) return;
+  [x.cuisine, x.course, x.sub] = to;
+  touch(x);
+  save();
+  toast(`‘${x.name}’ → ${to.filter(Boolean).join(' › ') || NO_CAT}`);
+}
+// 끌어 놓을 수 있는 곳: data-path = 그룹 경로
+function dropAt(el, p) {
+  if (p) el.dataset.path = JSON.stringify(p);
+  return el;
+}
+
+// 알약 줄: 누르면 prefs[key]에 기억 (미분류 하나뿐이면 숨김). pathFor(값) = 메뉴를 끌어 놓으면 갈 그룹
+function menuPills(box, values, on, key, pathFor) {
+  box.hidden = values.length < 2 && !known(values[0]);
+  box.replaceChildren(...values.map(v => dropAt(button(v, () => {
     prefs[key] = v;
     prefs.menuTag = null;
     savePrefs();
     $('menuSearch').value = '';
     renderMenus();
-  }, v === on ? 'on' : '')));
+  }, v === on ? 'on' : ''), pathFor(v))));
 }
 // 하위분류 제목: 처음엔 접혀 있고 누르면 펼침 (펼친 것은 prefs.menuOpen에 기억). 펼쳐져 있으면 true
 const groupKey = (c, k, s) => [c, k, s].join('›');
-function menuSubHead(key, name, n, out) {
-  const open = !!(prefs.menuOpen || {})[key];
-  const head = h('div', 'menu-sub' + (open ? '' : ' folded'));
-  head.append(h('span', 'fold', '▾'), h('span', 'name', name), h('span', 'count', n),
-    iconBtn('＋', `‘${name}’에 새 메뉴`, () => newMenu(name)));
+function menuSubHead(c, k, s, n, out) {
+  const key = groupKey(c, k, s), open = !!(prefs.menuOpen || {})[key];
+  const head = dropAt(h('div', 'menu-sub' + (open ? '' : ' folded')), [known(c), known(k), s]);
+  head.append(h('span', 'fold', '▾'), h('span', 'name', s), h('span', 'count', n),
+    iconBtn('＋', `‘${s}’에 새 메뉴`, () => newMenu(s)));
   head.title = open ? '접기' : '펼치기';
   head.addEventListener('click', () => {
     const o = { ...prefs.menuOpen };
@@ -205,10 +251,11 @@ function menuSubHead(key, name, n, out) {
   return open;
 }
 // 종류 → 분류를 골라 그 메뉴만 하위분류별로. 찾을 때·태그를 골랐을 때는 모든 메뉴에서 (다 펼쳐서)
+// 메뉴의 ⋮⋮를 끌어 하위분류 제목·분류·종류 알약·다른 메뉴 위에 놓으면 그 그룹으로 옮김
 const tagsOf = x => x.tags || [];
 let menuTag = null; // 보고 있는 태그
 function renderMenus() {
-  const q = norm($('menuSearch').value), all = menus();
+  const q = norm($('menuSearch').value), all = menus(), ex = extraGroups();
   const pick = (values, v) => values.includes(v) ? v : values[0];
   const tags = [...new Set(all.flatMap(tagsOf))].sort(ranker(TAG_PRESETS));
   menuTag = !q && tags.includes(prefs.menuTag) ? prefs.menuTag : null;
@@ -220,43 +267,58 @@ function renderMenus() {
     renderMenus();
   }, t === menuTag ? 'on' : '')));
   const flat = q || menuTag;
-  const cuisines = groupBy(all, cuisineOf, ranker(CUISINES)).map(([c]) => c);
+  const cuisines = [...new Set([...all.map(cuisineOf), ...ex.map(p => p[0])])].sort(ranker(CUISINES));
   menuCuisine = flat ? null : pick(cuisines, prefs.menuCuisine);
-  const courses = groupBy(all.filter(x => cuisineOf(x) === menuCuisine), courseOf, ranker(COURSE_ORDER)).map(([c]) => c);
+  const courses = [...new Set([...all.filter(x => cuisineOf(x) === menuCuisine).map(courseOf),
+    ...ex.filter(p => p[0] === menuCuisine && p[1]).map(p => p[1])])].sort(ranker(COURSE_ORDER));
   menuCourse = flat ? null : pick(courses, prefs.menuCourse);
-  menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine');
-  menuPills($('menuCourses'), courses, menuCourse, 'menuCourse');
+  menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine', v => v === NO_CAT ? null : [v]);
+  menuPills($('menuCourses'), courses, menuCourse, 'menuCourse', v => known(menuCuisine) && known(v) ? [menuCuisine, v] : null);
   // 재료·태그로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
   const list = q ? all.filter(x => [x.name, ...(x.ingredients || []), ...tagsOf(x)].some(v => norm(v).includes(q)))
     : menuTag ? all.filter(x => tagsOf(x).includes(menuTag))
     : all.filter(x => cuisineOf(x) === menuCuisine && courseOf(x) === menuCourse);
   $('menuCount').textContent = all.length || '';
-  const out = [];
-  for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
-    for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
-      for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
-        if (flat) out.push(h('div', 'slot-head', [c, k === NO_CAT ? '' : k, s].filter(Boolean).join(' › ')));
-        else if (s && !menuSubHead(groupKey(c, k, s), s, ms.length, out)) continue; // 접힌 하위분류
-        const ul = h('ul', 'list');
-        ul.append(...ms.map(menuRow));
-        out.push(ul);
+  const out = [], ul = ms => {
+    const e = h('ul', 'list');
+    e.append(...ms.map(menuRow));
+    return e;
+  };
+  if (flat) {
+    for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
+      for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
+        for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
+          out.push(dropAt(h('div', 'slot-head', [c, known(k), s].filter(Boolean).join(' › ')), [known(c), known(k), s]), ul(ms));
+        }
       }
+    }
+  } else {
+    // 메뉴가 없어도 직접 만든 하위분류는 보여줌 (끌어 놓을 수 있게)
+    const subs = [...new Set([...list.map(x => x.sub || ''),
+      ...ex.filter(p => p[0] === menuCuisine && p[1] === menuCourse && p[2]).map(p => p[2])])].sort(ranker(subOrder(menuCourse)));
+    for (const s of subs) {
+      const ms = list.filter(x => (x.sub || '') === s);
+      if (s && !menuSubHead(menuCuisine, menuCourse, s, ms.length, out)) continue; // 접힌 하위분류
+      if (ms.length) out.push(ul(ms));
     }
   }
   $('menuList').replaceChildren(...(out.length ? out
-    : [h('p', 'empty', all.length ? '찾는 메뉴가 없어요' : '메뉴를 등록하면 식단에 골라 넣고, 재료를 장보기로 보낼 수 있어요. (설정 › 기본 메뉴 넣기)')]));
+    : [h('p', 'empty', !all.length ? '메뉴를 등록하면 식단에 골라 넣고, 재료를 장보기로 보낼 수 있어요. (설정 › 기본 메뉴 넣기)'
+      : q ? '찾는 메뉴가 없어요' : '아직 메뉴가 없어요')]));
 }
 function menuRow(x) {
-  const li = h('li'), n = (x.ingredients || []).length;
-  li.append(h('span', 'title', x.name));
+  const li = dropAt(h('li', 'menu-row'), pathOf(x)), n = (x.ingredients || []).length, handle = dragHandle();
+  handle.title = '끌어서 다른 하위분류·분류·종류 위에 놓기';
+  handle.addEventListener('click', e => e.stopPropagation()); // 끌고 난 뒤 편집 창이 열리지 않게
+  li.append(handle, h('span', 'title', x.name));
   if (n) li.append(h('span', 'meta', `재료 ${n}`));
   li.append(iconBtn('＋', `${fmtMD(selected)} ${SLOTS[slot()]}에 넣기`, () => addMeal(x.name)));
   li.addEventListener('click', () => openMenu(x));
+  sortable(handle, li, '#menuPanel [data-path]', t => moveMenu(x, JSON.parse(t.dataset.path)));
   return li;
 }
 $('menuSearch').addEventListener('input', renderMenus);
 // 새 메뉴는 지금 보고 있는 종류·분류로 (하위분류 제목의 ＋는 그 하위분류까지, 태그를 보고 있으면 그 태그)
-const known = v => v && v !== NO_CAT ? v : '';
 const newMenu = (sub = '') => openMenu(newRec('menu', {
   name: '', cuisine: known(menuCuisine), course: known(menuCourse), sub, tags: menuTag ? [menuTag] : [],
   ingredients: [], recipe: '', link: '',

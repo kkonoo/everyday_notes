@@ -1,108 +1,75 @@
 'use strict';
-// 메뉴 분류 정리 (설정 > 메뉴 분류 정리): 종류 › 분류 › 하위분류를 접힌 목록으로
-//  - 메뉴의 ⋮⋮를 끌어 그룹 이름(또는 그 그룹의 메뉴) 위에 놓으면 그 그룹으로 옮김
-//  - ✎ 그룹 이름 바꾸기 = 그 안 메뉴 전부의 분류를 바꿈. ＋ 새 그룹 (메뉴를 넣기 전까지는 이 창에만 있음)
-// 그룹을 따로 저장하지 않음 (분류는 메뉴마다 적힌 값). meals.js 의 menus, ranker 등을 그대로 사용
+// 메뉴 분류 정리 (설정 > 메뉴 분류 정리): 종류 › 분류 › 하위분류 그룹만 접힌 목록으로 (메뉴 하나씩은 메뉴·레시피에서)
+//  - 그룹의 ⋮⋮를 끌어 위 단계 그룹에 놓으면 그 아래로 옮기고, 같은 단계 그룹에 놓으면 합침 (안의 메뉴 전부)
+//  - ✎ 이름 바꾸기, ＋ 새 그룹 (빈 그룹도 계정에 저장), ✕ 빈 그룹 지우기
+// 그룹 도우미(childrenOf, menusIn, extraGroups 등)는 meals.js
 
-const LEVELS = ['cuisine', 'course', 'sub'];
 const LEVEL_NAMES = ['종류', '분류', '하위분류'];
 const groupOpen = new Set(); // 펼친 그룹 (앱을 켜 둔 동안 기억)
-let groupNew = [];           // 새로 만든 빈 그룹의 경로
-
-const pathOf = x => LEVELS.map(f => x[f] || '');
-const pkey = p => p.join('›');
-const startsWith = (p, q) => q.every((v, i) => p[i] === v); // p가 q 그룹 안
-const menusIn = p => menus().filter(x => startsWith(pathOf(x), p));
-
-// 그룹 p 바로 아래: 하위 그룹이 없는 메뉴(loose) + 하위 그룹 이름들 (정해 둔 것 → 메뉴에 있는 것 → 새로 만든 것)
-function childrenOf(p) {
-  const L = p.length, inside = menusIn(p);
-  if (L === 3) return { loose: inside, kids: [] };
-  const names = new Set(L === 0 ? CUISINES : L === 2 ? subOrder(p[1]) : []);
-  inside.forEach(x => names.add(x[LEVELS[L]] || ''));
-  groupNew.filter(q => q.length > L && startsWith(q, p)).forEach(q => names.add(q[L]));
-  names.delete('');
-  const order = L === 0 ? ranker(CUISINES) : L === 1 ? ranker(COURSE_ORDER) : ranker(subOrder(p[1]));
-  return { loose: inside.filter(x => !x[LEVELS[L]]), kids: [...names].sort(order) };
-}
 
 function renderGroups() {
-  $('groupTree').replaceChildren(...groupBody([]));
-}
-function groupBody(p) {
-  const { loose, kids } = childrenOf(p), out = [];
-  if (loose.length) {
-    const ul = h('ul', 'list');
-    ul.append(...loose.map(groupMenu));
-    out.push(ul);
-  }
-  return [...out, ...kids.map(name => groupNode([...p, name]))];
+  $('groupTree').replaceChildren(...childrenOf([]).map(name => groupNode([name])));
 }
 function groupNode(p) {
-  const key = pkey(p), open = groupOpen.has(key), n = menusIn(p).length, L = p.length;
+  const key = pkey(p), L = p.length, n = menusIn(p).length, kids = childrenOf(p), open = kids.length && groupOpen.has(key);
   const box = h('div', `grp lv${L}` + (open ? '' : ' folded'));
-  const head = h('div', 'grp-head' + (n ? '' : ' empty'));
-  head.dataset.path = JSON.stringify(p);
-  head.append(h('span', 'fold', '▾'), h('span', 'name', p[L - 1]), h('span', 'count', n),
+  const head = dropAt(h('div', 'grp-head' + (n ? '' : ' empty')), p), handle = dragHandle();
+  handle.title = '끌어서 다른 그룹 위에 놓기';
+  handle.addEventListener('click', e => e.stopPropagation()); // 끌고 난 뒤 접히지 않게
+  head.append(handle, h('span', 'fold' + (kids.length ? '' : ' none'), '▾'), h('span', 'name', p[L - 1]), h('span', 'count', n),
     iconBtn('✎', `${LEVEL_NAMES[L - 1]} 이름 바꾸기`, () => renameGroup(p)));
   if (L < 3) head.append(iconBtn('＋', `${LEVEL_NAMES[L]} 추가`, () => addGroup(p)));
-  head.title = open ? '접기' : '펼치기';
-  head.addEventListener('click', () => {
-    if (open) groupOpen.delete(key); else groupOpen.add(key);
-    renderGroups();
+  if (!n) head.append(iconBtn('✕', '빈 그룹 지우기', () => dropGroup(p)));
+  if (kids.length) {
+    head.title = open ? '접기' : '펼치기';
+    head.addEventListener('click', () => {
+      if (open) groupOpen.delete(key); else groupOpen.add(key);
+      renderGroups();
+    });
+  }
+  // 놓을 수 있는 곳: 같은 단계(합치기)와 그 위 단계 그룹 (자기 안쪽은 빼고)
+  const targets = Array.from({ length: L }, (_, i) => `.grp.lv${i + 1} > .grp-head`).join(', ');
+  sortable(handle, box, targets, t => {
+    const tp = JSON.parse(t.dataset.path);
+    moveGroup(p, tp.length === L ? tp : [...tp, ...p.slice(tp.length)]);
   });
   box.append(head);
-  if (open) box.append(...groupBody(p));
+  if (open) box.append(...kids.map(name => groupNode([...p, name])));
   return box;
 }
-function groupMenu(x) {
-  const li = h('li', 'grp-menu'), handle = dragHandle();
-  handle.title = '끌어서 다른 그룹 위에 놓기';
-  li.dataset.path = JSON.stringify(pathOf(x));
-  li.append(handle, h('span', 'title', x.name));
-  sortable(handle, li, '.grp-head, .grp-menu', t => moveMenu(x, JSON.parse(t.dataset.path)));
-  return li;
-}
 
-// 메뉴를 그룹 p로. 종류·분류에 놓으면 원래 아래 분류가 거기에도 있을 때만 그대로 (없으면 비움)
-function moveMenu(x, p) {
-  const to = [...p];
-  let keep = true;
-  while (to.length < 3) {
-    const v = x[LEVELS[to.length]] || '';
-    keep = keep && !!v && childrenOf(to).kids.includes(v);
-    to.push(keep ? v : '');
-  }
-  if (pkey(to) === pkey(pathOf(x))) return;
-  [x.cuisine, x.course, x.sub] = to;
-  touch(x);
-  save();
-  renderGroups();
-  toast(`‘${x.name}’ → ${to.filter(Boolean).join(' › ') || NO_CAT}`);
-}
-function renameGroup(p) {
-  const L = p.length, old = p[L - 1], parent = p.slice(0, -1);
-  const name = (prompt(`${LEVEL_NAMES[L - 1]} 이름`, old) || '').trim();
-  if (!name || name === old) return;
-  if (childrenOf(parent).kids.includes(name) && !confirm(`‘${name}’이(가) 이미 있어요. 합칠까요?`)) return;
-  const np = [...parent, name], inside = menusIn(p);
-  for (const x of inside) { x[LEVELS[L - 1]] = name; touch(x); }
+// 그룹 p(안의 메뉴 전부)를 같은 단계의 경로 np로. 거기에 메뉴가 이미 있으면 합칠지 물어봄
+function moveGroup(p, np) {
+  if (pkey(np) === pkey(p)) return;
+  const L = p.length, inside = menusIn(p), there = menusIn(np).length;
+  if (there && !confirm(`‘${np.join(' › ')}’에 메뉴 ${there}개가 이미 있어요. 합칠까요?`)) return;
+  for (const x of inside) { [x.cuisine, x.course, x.sub] = [...np, ...pathOf(x).slice(L)]; touch(x); }
   const moved = q => startsWith(q, p) ? [...np, ...q.slice(L)] : q;
-  groupNew = groupNew.map(moved);
-  if (!inside.length) groupNew.push(np); // 정해 둔 빈 그룹(예: 국 › 기타)을 바꾼 경우
+  if (extraGroups().some(q => startsWith(q, p))) setExtraGroups(extraGroups().map(moved));
   for (const k of [...groupOpen]) {
     const q = k.split('›');
     if (startsWith(q, p)) { groupOpen.delete(k); groupOpen.add(pkey(moved(q))); }
   }
-  if (inside.length) save();
+  for (let i = 1; i < L; i++) groupOpen.add(pkey(np.slice(0, i))); // 옮긴 곳이 보이게
+  save();
   renderGroups();
+  toast(`‘${p[L - 1]}’ → ${np.join(' › ')}`);
+}
+function renameGroup(p) {
+  const old = p[p.length - 1], name = (prompt(`${LEVEL_NAMES[p.length - 1]} 이름`, old) || '').trim();
+  if (name && name !== old) moveGroup(p, [...p.slice(0, -1), name]);
 }
 function addGroup(p) {
   const L = p.length, name = (prompt(`새 ${LEVEL_NAMES[L]} 이름`) || '').trim();
   if (!name) return;
   const q = [...p, name];
-  if (!childrenOf(p).kids.includes(name)) groupNew.push(q);
-  for (let i = 1; i <= q.length; i++) groupOpen.add(pkey(q.slice(0, i)));
+  if (!childrenOf(p).includes(name)) { setExtraGroups([...extraGroups(), q]); save(); }
+  for (let i = 1; i < q.length; i++) groupOpen.add(pkey(q.slice(0, i)));
+  renderGroups();
+}
+function dropGroup(p) {
+  setExtraGroups(extraGroups().filter(q => !startsWith(q, p)));
+  save();
   renderGroups();
 }
 

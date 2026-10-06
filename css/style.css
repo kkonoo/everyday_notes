@@ -461,6 +461,8 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .menu-sub .fold { width: 12px; color: var(--faint); font-size: 12px; transition: transform .15s; }
 .menu-sub.folded .fold { transform: rotate(-90deg); }
 .menu-sub .count { flex: 1; font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+#menuList .menu-row .handle { visibility: hidden; margin-left: -6px; }
+#menuList .menu-row:hover .handle { visibility: visible; }
 .meal-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .meal-add .add-input { margin-top: 0; }
 .search-input {
@@ -581,7 +583,7 @@ textarea:focus { border-color: var(--accent); }
 /* 메뉴 분류 정리 (menu-groups.js): 종류 › 분류 › 하위분류를 들여쓰기로 */
 #menuGroups .hint { line-height: 1.5; }
 #groupTree { margin-top: 8px; }
-.grp .grp, .grp > .list { margin-left: 16px; }
+.grp .grp { margin-left: 16px; }
 .grp-head { display: flex; align-items: center; gap: 6px; padding: 6px 4px 6px 6px; border-radius: 8px; cursor: pointer; user-select: none; }
 .grp-head:hover { background: var(--surface-2); }
 .grp.lv1 > .grp-head { font-size: 15px; font-weight: 700; }
@@ -593,9 +595,9 @@ textarea:focus { border-color: var(--accent); }
 .grp-head.empty .name { color: var(--muted); }
 .grp-head .icon-btn { visibility: hidden; }
 .grp-head:hover .icon-btn { visibility: visible; }
-.grp-menu { cursor: default !important; }
-/* 끌어서 놓을 그룹 (sortable의 위·아래 표시 대신 칸 전체) */
-.grp-head.drop-before, .grp-head.drop-after, .grp-menu.drop-before, .grp-menu.drop-after {
+.grp-head .fold.none { visibility: hidden; }
+/* 끌어서 놓을 그룹 (sortable의 위·아래 표시 대신 칸 전체): 메뉴 분류 정리, 메뉴·레시피 */
+.grp-head.drop-before, .grp-head.drop-after, #menuPanel .drop-before, #menuPanel .drop-after {
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 1.5px var(--accent) !important;
 }
@@ -697,5 +699,5 @@ textarea:focus { border-color: var(--accent); }
   #menuPanel { min-height: 0; }
   .field-label + .row:has(.third) { gap: 6px; }
   .text-input.third { padding-inline: 6px; font-size: 13px; } /* '아시아·기타'가 다 보이게 */
-  .grp-head .icon-btn { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
+  .grp-head .icon-btn, #menuList .menu-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
 }
