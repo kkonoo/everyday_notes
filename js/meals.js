@@ -163,7 +163,7 @@ const NO_CAT = '미분류';
 const cuisineOf = x => x.cuisine || NO_CAT;
 const courseOf = x => x.course || NO_CAT;
 const COURSE_ORDER = Object.keys(COURSES);
-// 편집 창 자동완성에 넣는 정해 둔 분류·하위분류 (이름을 바꾼 종류(예: 디저트 → 간식·디저트)는 원래 종류의 분류)
+// 편집 창 자동완성에 넣는 정해 둔 분류·하위분류 (이름을 바꾼 종류(예: 간식·디저트 → 디저트)는 원래 종류의 분류)
 const courseOrder = cuisine => CUISINE_COURSES[cuisine]
   || (CUISINES.includes(cuisine) ? null : CUISINE_COURSES[presetCuisineOf(cuisine)]) || COURSE_ORDER;
 const subOrder = course => COURSES[course] || [];
@@ -477,14 +477,14 @@ $('weekShopBtn').addEventListener('click', () => {
   addToShop(names, `${range} 식단 재료`);
 });
 
-// 기본 메뉴(menu-presets.js) 하나씩 { name, note, cuisine, course, sub }
+// 기본 메뉴(menu-presets.js) 하나씩 { name, note, tags, cuisine, course, sub }
 const presetMenus = () => MENU_PRESETS.flatMap(([cuisine, course, sub, names]) => names.split(',').map(item => {
-  const [, name, note] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?$/); // '김치찌개(참치/…)' → 이름, 메모
-  return { name, note, cuisine, course, sub };
+  const [, name, note, tags] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?((?:\s*#[^\s#]+)*)$/); // '김치찌개(참치/…) #일상' → 이름, 메모, 태그
+  return { name, note, tags: tags.split('#').map(t => t.trim()).filter(Boolean), cuisine, course, sub };
 }));
 let presetIndex = null; // 이름 → 기본 메뉴
 const presetOf = x => (presetIndex = presetIndex || new Map(presetMenus().map(p => [norm(p.name), p]))).get(norm(x.name));
-// 기본 메뉴의 그룹(예: ['디저트'])이 지금 있는 곳 = 그 그룹 기본 메뉴들이 가장 많이 있는 그룹. 이름을 바꾸거나 옮겼어도 따라감
+// 기본 메뉴의 그룹(예: ['간식·디저트'])이 지금 있는 곳 = 그 그룹 기본 메뉴들이 가장 많이 있는 그룹. 이름을 바꾸거나 옮겼어도 따라감
 function presetHome(pp) {
   const n = new Map();
   for (const x of menus()) {
@@ -496,7 +496,7 @@ function presetHome(pp) {
   }
   return n.size ? [...n].sort((a, b) => b[1] - a[1])[0][0].split('›') : null;
 }
-// 거꾸로: 지금 종류 c에 있는 기본 메뉴들의 원래 종류 (예: 간식·디저트 → 디저트)
+// 거꾸로: 지금 종류 c에 있는 기본 메뉴들의 원래 종류 (예: 디저트 → 간식·디저트)
 function presetCuisineOf(c) {
   const n = new Map();
   for (const x of menus()) {
@@ -526,7 +526,7 @@ function reorg(x, preset) {
   if (x.cuisine === '한식' && x.course === '유아식') [x.cuisine, x.course, x.sub] = ['유아식', x.sub || '', ''];
   else if (x.cuisine === '디저트' && !x.course) {
     const p = preset.get(norm(x.name));
-    x.course = p && p.cuisine === '디저트' ? p.course : '기타';
+    x.course = p && p.cuisine === '간식·디저트' ? p.course : '기타'; // 기본 메뉴의 디저트는 2026-10-06 밤부터 '간식·디저트'
   } else changed = false;
   if (tagsOf(x).some(t => SEASON_TAGS.includes(t))) {
     x.tags = [...new Set(tagsOf(x).map(t => SEASON_TAGS.includes(t) ? '계절' : t))];
@@ -557,7 +557,7 @@ function upgradeMenus() {
 if (upgradeMenus()) persist();
 
 // 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴와 지운 메뉴는 건너뛰고, 있는 메뉴에 분류가 없으면 분류만 채움
-// 넣는 그룹은 같은 기본 그룹 메뉴들이 지금 있는 곳 (예: 디저트를 간식·디저트로 바꿨으면 간식·디저트 › 떡)
+// 넣는 그룹은 같은 기본 그룹 메뉴들이 지금 있는 곳 (예: 간식·디저트를 디저트로 바꿨으면 디저트 › 떡)
 function presetPlace(p) {
   const pp = [p.cuisine, p.course, p.sub];
   for (let L = 3; L > 0; L--) {
@@ -575,7 +575,7 @@ $('presetBtn').addEventListener('click', () => {
     if (!x) {
       if (gone.has(norm(p.name))) continue;
       const [cuisine, course, sub] = presetPlace(p);
-      add.push(newRec('menu', { name: p.name, cuisine, course, sub, ingredients: [], recipe: p.note || '', link: '' }));
+      add.push(newRec('menu', { name: p.name, cuisine, course, sub, tags: p.tags, ingredients: [], recipe: p.note || '', link: '' }));
     } else if (!x.cuisine && !x.course) fill.push([x, p]);
   }
   if (!add.length && !fill.length) { toast('기본 메뉴가 이미 모두 있어요'); return; }

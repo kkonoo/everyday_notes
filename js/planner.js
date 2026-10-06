@@ -7,13 +7,13 @@
 // 이미 그 끼니에 같은 메뉴가 있으면 건너뜀. meals.js 의 menus, pushMeal, mealsOn 등을 그대로 사용
 
 // 추천 칸마다 고르는 곳: 한식(종류가 비어 있어도)의 분류 › 하위분류.
-// home이 있으면 그 기본 그룹이 지금 있는 종류 전부 (예: 디저트를 간식·디저트로 바꿨으면 간식·디저트)
+// home이 있으면 그 기본 그룹이 지금 있는 종류 전부 (예: 간식·디저트를 디저트로 바꿨으면 디저트)
 const PARTS = [
   { key: 'rice', label: '밥', course: '밥·면', subs: ['밥'] },
   { key: 'soup', label: '국', course: '국', subs: ['국', '찌개'] },
   { key: 'side', label: '반찬', course: '반찬', subs: ['볶음', '무침', '나물', '기타'] },
   { key: 'main', label: '메인', course: '메인', subs: ['구이', '볶음', '찜', '조림'] },
-  { key: 'dessert', label: '간식·디저트', home: ['디저트'] },
+  { key: 'dessert', label: '간식·디저트', home: ['간식·디저트'] },
 ];
 // 테마 추천 칸: 고른 태그가 붙은 메뉴 아무거나
 const THEME = { key: 'theme', label: '테마' };
