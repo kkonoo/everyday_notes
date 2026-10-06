@@ -57,7 +57,7 @@
       <div class="panel-head">
         <h2 id="dayTitle"></h2>
         <span class="head-btns">
-          <button class="btn small" id="planBtn" title="일주일 식단을 랜덤으로 추천받거나 한꺼번에 넣기">한 주 식단</button>
+          <button class="btn small" id="planBtn" title="일주일 식단을 랜덤·테마(태그)로 추천받거나 한꺼번에 넣기·빼기">한 주 식단·테마</button>
           <button class="btn small" id="weekShopBtn" title="이번 주(일~토) 식단의 재료를 장보기 목록에 추가">이번 주 재료 → 장보기</button>
         </span>
       </div>
@@ -157,6 +157,7 @@
     <label>방식</label>
     <div class="seg" id="planMode">
       <button type="button" data-mode="random">랜덤 추천</button>
+      <button type="button" data-mode="theme">테마 추천</button>
       <button type="button" data-mode="pick">직접 고르기</button>
     </div>
   </div>
@@ -176,8 +177,22 @@
       <button type="button" class="pill-link" id="planSeasonEdit">고치기</button>
     </div>
     <textarea id="planSeasonText" rows="2" placeholder="쉼표로 나눠 적기 (예: 꽃게, 대하, 버섯)" hidden></textarea>
+  </section>
+  <section id="planTheme">
+    <div class="row"><label>테마</label><div class="pills" id="planThemeTags"></div></div>
+    <div class="row">
+      <label>하루에</label>
+      <div class="seg small" id="planThemeN">
+        <button type="button" data-n="1">1개</button>
+        <button type="button" data-n="2">2개</button>
+        <button type="button" data-n="3">3개</button>
+      </div>
+      <span class="hint" id="planThemeInfo"></span>
+    </div>
+  </section>
+  <section id="planDraw">
     <div class="plan-rows" id="planRows"></div>
-    <p class="hint">메뉴를 누르면 그것만 다시 뽑아요. 테두리 = 제철 메뉴</p>
+    <p class="hint" id="planRowsHint"></p>
   </section>
   <section id="planPick">
     <div class="suggest-wrap">

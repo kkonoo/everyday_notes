@@ -454,16 +454,22 @@ function oldClass(cat = '', sub = '') {
   if (cat === '유아식') return ['유아식', sub, ''];
   return [cat === '분식·배달' ? '분식' : cat, '', sub];
 }
-// 2026-10-06 저녁 재분류: 유아식은 한식의 분류 → 종류로 (하위분류가 분류로), 분류 없는 디저트는 음료·빵·케이크·떡·기타로
-// 그 전에 저장된 메뉴만 (한 번 바꾸면 저장 시각이 늦어져서 다시 안 바뀜)
+// 2026-10-06 저녁 재분류: 유아식은 한식의 분류 → 종류로 (하위분류가 분류로), 분류 없는 디저트는 음료·빵·케이크·떡·기타로,
+// 태그 봄·여름·가을·겨울은 '계절' 하나로. 그 전에 저장된 메뉴만 (한 번 바꾸면 저장 시각이 늦어져서 다시 안 바뀜)
 const REORG_AT = Date.UTC(2026, 9, 6, 9, 0); // 2026-10-06 18:00 (한국)
+const SEASON_TAGS = ['봄', '여름', '가을', '겨울'];
 function reorg(x, preset) {
+  let changed = true;
   if (x.cuisine === '한식' && x.course === '유아식') [x.cuisine, x.course, x.sub] = ['유아식', x.sub || '', ''];
   else if (x.cuisine === '디저트' && !x.course) {
     const p = preset.get(norm(x.name));
     x.course = p && p.cuisine === '디저트' ? p.course : '기타';
-  } else return false;
-  return true;
+  } else changed = false;
+  if (tagsOf(x).some(t => SEASON_TAGS.includes(t))) {
+    x.tags = [...new Set(tagsOf(x).map(t => SEASON_TAGS.includes(t) ? '계절' : t))];
+    changed = true;
+  }
+  return changed;
 }
 function upgradeMenus() {
   const preset = new Map(presetMenus().map(p => [norm(p.name), p]));
