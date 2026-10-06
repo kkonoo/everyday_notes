@@ -156,11 +156,12 @@ menuInput($('mealInput'), $('mealSuggest'), addMeal);
 
 // ---------- 메뉴·레시피 ----------
 // 분류 = 종류(cuisine) › 분류(course) › 하위분류(sub). 비어 있어도 됨 (종류·분류가 없으면 '미분류')
-// 순서: menu-presets.js 의 CUISINES·COURSES 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 하위분류 없는 메뉴는 맨 앞
+// 순서: menu-presets.js 의 CUISINES·COURSES(종류에 따라 CUISINE_COURSES) 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 하위분류 없는 메뉴는 맨 앞
 const NO_CAT = '미분류';
 const cuisineOf = x => x.cuisine || NO_CAT;
 const courseOf = x => x.course || NO_CAT;
 const COURSE_ORDER = Object.keys(COURSES);
+const courseOrder = cuisine => CUISINE_COURSES[cuisine] || COURSE_ORDER;
 const subOrder = course => COURSES[course] || [];
 const rankIn = (known, v) => !v ? -1 : known.includes(v) ? known.indexOf(v) : known.length;
 const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
@@ -198,7 +199,7 @@ function childrenOf(p) {
   menusIn(p).forEach(x => names.add(x[LEVELS[L]] || ''));
   extraGroups().filter(q => q.length > L && startsWith(q, p)).forEach(q => names.add(q[L]));
   names.delete('');
-  return [...names].sort(L === 0 ? ranker(CUISINES) : L === 1 ? ranker(COURSE_ORDER) : ranker(subOrder(p[1])));
+  return [...names].sort(L === 0 ? ranker(CUISINES) : L === 1 ? ranker(courseOrder(p[0])) : ranker(subOrder(p[1])));
 }
 // 메뉴 하나를 그룹 p로 (메뉴·레시피에서 ⋮⋮로 끌어 놓기). 종류·분류에 놓으면 아래 분류가 거기에도 있을 때만 그대로
 function moveMenu(x, p) {
@@ -270,7 +271,7 @@ function renderMenus() {
   const cuisines = [...new Set([...all.map(cuisineOf), ...ex.map(p => p[0])])].sort(ranker(CUISINES));
   menuCuisine = flat ? null : pick(cuisines, prefs.menuCuisine);
   const courses = [...new Set([...all.filter(x => cuisineOf(x) === menuCuisine).map(courseOf),
-    ...ex.filter(p => p[0] === menuCuisine && p[1]).map(p => p[1])])].sort(ranker(COURSE_ORDER));
+    ...ex.filter(p => p[0] === menuCuisine && p[1]).map(p => p[1])])].sort(ranker(courseOrder(menuCuisine)));
   menuCourse = flat ? null : pick(courses, prefs.menuCourse);
   menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine', v => v === NO_CAT ? null : [v]);
   menuPills($('menuCourses'), courses, menuCourse, 'menuCourse', v => known(menuCuisine) && known(v) ? [menuCuisine, v] : null);
@@ -286,7 +287,7 @@ function renderMenus() {
   };
   if (flat) {
     for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
-      for (const [k, inK] of groupBy(inC, courseOf, ranker(COURSE_ORDER))) {
+      for (const [k, inK] of groupBy(inC, courseOf, ranker(courseOrder(c)))) {
         for (const [s, ms] of groupBy(inK, x => x.sub || '', ranker(subOrder(k)))) {
           out.push(dropAt(h('div', 'slot-head', [c, known(k), s].filter(Boolean).join(' › ')), [known(c), known(k), s]), ul(ms));
         }
@@ -334,16 +335,17 @@ function syncMenuLink() {
   $('menuLinkOpen').hidden = !/^https?:\/\//.test(v);
   $('menuLinkOpen').href = v;
 }
-// 분류 칸 자동완성: 정해 둔 것 + 메뉴에 적힌 것. 하위분류는 고른 분류의 것
+// 분류 칸 자동완성: 정해 둔 것 + 메뉴에 적힌 것. 분류는 고른 종류의 것, 하위분류는 고른 분류의 것
 function fillCatLists() {
-  const all = menus(), course = menuForm.course.value.trim();
+  const all = menus(), cuisine = menuForm.cuisine.value.trim(), course = menuForm.course.value.trim();
   const options = (values, order) => [...new Set(values.filter(Boolean))].sort(order).map(v => {
     const o = h('option');
     o.value = v;
     return o;
   });
   $('menuCuisineList').replaceChildren(...options([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES)));
-  $('menuCourseList').replaceChildren(...options([...COURSE_ORDER, ...all.map(x => x.course)], ranker(COURSE_ORDER)));
+  $('menuCourseList').replaceChildren(...options([...courseOrder(cuisine), ...all.filter(x => x.cuisine === cuisine).map(x => x.course)],
+    ranker(courseOrder(cuisine))));
   $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
     ranker(subOrder(course))));
 }
@@ -384,6 +386,7 @@ function openMenu(menu, meal) {
   if (!menu.name) menuForm.name.focus();
 }
 menuForm.link.addEventListener('input', syncMenuLink);
+menuForm.cuisine.addEventListener('input', fillCatLists);
 menuForm.course.addEventListener('input', fillCatLists);
 menuForm.addEventListener('submit', e => {
   e.preventDefault();
@@ -448,21 +451,37 @@ function oldClass(cat = '', sub = '') {
     return ['한식', course || (sub ? '메인' : ''), { 한그릇: '밥', '전·부침': '기타' }[sub] || sub];
   }
   if (cat === '반찬') return sub === '단백질' ? ['한식', '메인', '기타'] : ['한식', '반찬', sub];
-  if (cat === '유아식') return ['한식', '유아식', sub];
+  if (cat === '유아식') return ['유아식', sub, ''];
   return [cat === '분식·배달' ? '분식' : cat, '', sub];
+}
+// 2026-10-06 저녁 재분류: 유아식은 한식의 분류 → 종류로 (하위분류가 분류로), 분류 없는 디저트는 음료·빵·케이크·떡·기타로
+// 그 전에 저장된 메뉴만 (한 번 바꾸면 저장 시각이 늦어져서 다시 안 바뀜)
+const REORG_AT = Date.UTC(2026, 9, 6, 9, 0); // 2026-10-06 18:00 (한국)
+function reorg(x, preset) {
+  if (x.cuisine === '한식' && x.course === '유아식') [x.cuisine, x.course, x.sub] = ['유아식', x.sub || '', ''];
+  else if (x.cuisine === '디저트' && !x.course) {
+    const p = preset.get(norm(x.name));
+    x.course = p && p.cuisine === '디저트' ? p.course : '기타';
+  } else return false;
+  return true;
 }
 function upgradeMenus() {
   const preset = new Map(presetMenus().map(p => [norm(p.name), p]));
   let n = 0;
   for (const x of db.recs) {
-    if (x.kind !== 'menu' || !('cat' in x)) continue;
-    if (!('cuisine' in x)) {
-      const p = preset.get(norm(x.name));
-      [x.cuisine, x.course, x.sub] = p ? [p.cuisine, p.course, p.sub] : oldClass(x.cat, x.sub);
+    if (x.kind !== 'menu') continue;
+    const old = x.updatedAt < REORG_AT;
+    let changed = false;
+    if ('cat' in x) {
+      if (!('cuisine' in x)) {
+        const p = preset.get(norm(x.name));
+        [x.cuisine, x.course, x.sub] = p ? [p.cuisine, p.course, p.sub] : oldClass(x.cat, x.sub);
+      }
+      delete x.cat;
+      changed = true;
     }
-    delete x.cat;
-    touch(x);
-    n++;
+    if (old && reorg(x, preset)) changed = true;
+    if (changed) { touch(x); n++; }
   }
   return n;
 }

@@ -1,6 +1,7 @@
 'use strict';
 // 메뉴 분류 정리 (설정 > 메뉴 분류 정리): 종류 › 분류 › 하위분류 그룹만 접힌 목록으로 (메뉴 하나씩은 메뉴·레시피에서)
 //  - 그룹의 ⋮⋮를 끌어 위 단계 그룹에 놓으면 그 아래로 옮기고, 같은 단계 그룹에 놓으면 합침 (안의 메뉴 전부)
+//    맨 위 '종류로 꺼내기'에 놓으면 분류·하위분류를 종류로 (예: 한식 › 유아식 › 국 → 유아식 › 국)
 //  - ✎ 이름 바꾸기, ＋ 새 그룹 (빈 그룹도 계정에 저장), ✕ 빈 그룹 지우기
 // 그룹 도우미(childrenOf, menusIn, extraGroups 등)는 meals.js
 
@@ -8,7 +9,8 @@ const LEVEL_NAMES = ['종류', '분류', '하위분류'];
 const groupOpen = new Set(); // 펼친 그룹 (앱을 켜 둔 동안 기억)
 
 function renderGroups() {
-  $('groupTree').replaceChildren(...childrenOf([]).map(name => groupNode([name])));
+  const root = dropAt(h('div', 'grp-root', '⤒ 여기에 놓으면 종류로 꺼내기'), []);
+  $('groupTree').replaceChildren(root, ...childrenOf([]).map(name => groupNode([name])));
 }
 function groupNode(p) {
   const key = pkey(p), L = p.length, n = menusIn(p).length, kids = childrenOf(p), open = kids.length && groupOpen.has(key);
@@ -27,10 +29,11 @@ function groupNode(p) {
       renderGroups();
     });
   }
-  // 놓을 수 있는 곳: 같은 단계(합치기)와 그 위 단계 그룹 (자기 안쪽은 빼고)
-  const targets = Array.from({ length: L }, (_, i) => `.grp.lv${i + 1} > .grp-head`).join(', ');
+  // 놓을 수 있는 곳: 같은 단계(합치기)와 그 위 단계 그룹 (자기 안쪽은 빼고), 분류·하위분류는 '종류로 꺼내기'도
+  const targets = [...Array.from({ length: L }, (_, i) => `.grp.lv${i + 1} > .grp-head`), ...L > 1 ? ['.grp-root'] : []].join(', ');
   sortable(handle, box, targets, t => {
     const tp = JSON.parse(t.dataset.path);
+    if (!tp.length) { promoteGroup(p); return; }
     moveGroup(p, tp.length === L ? tp : [...tp, ...p.slice(tp.length)]);
   });
   box.append(head);
@@ -54,6 +57,17 @@ function moveGroup(p, np) {
   save();
   renderGroups();
   toast(`‘${p[L - 1]}’ → ${np.join(' › ')}`);
+}
+// 분류·하위분류 p를 종류로 꺼내기: 그 아래 단계가 한 칸씩 올라감
+function promoteGroup(p) {
+  const L = p.length, name = p[L - 1], there = menusIn([name]).length;
+  if (there && !confirm(`종류 ‘${name}’에 메뉴 ${there}개가 이미 있어요. 합칠까요?`)) return;
+  const up = q => [name, ...q.slice(L)];
+  for (const x of menusIn(p)) { [x.cuisine, x.course, x.sub] = [...up(pathOf(x)), '', ''].slice(0, 3); touch(x); }
+  if (extraGroups().some(q => startsWith(q, p))) setExtraGroups(extraGroups().map(q => startsWith(q, p) ? up(q) : q));
+  save();
+  renderGroups();
+  toast(`‘${name}’ → 종류`);
 }
 function renameGroup(p) {
   const old = p[p.length - 1], name = (prompt(`${LEVEL_NAMES[p.length - 1]} 이름`, old) || '').trim();
