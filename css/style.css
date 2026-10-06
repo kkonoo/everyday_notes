@@ -519,6 +519,7 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .menu-sub .fold { width: 12px; color: var(--faint); font-size: 12px; transition: transform .15s; }
 .menu-sub.folded .fold { transform: rotate(-90deg); }
 .menu-sub .count { flex: 1; font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.menu-sub.tag-path { margin-top: 4px; padding-block: 4px; font-size: 13px; color: var(--muted); } /* 태그 보기의 분류 제목 (한식 › 국 › 국) */
 #menuList .menu-row .handle { visibility: hidden; margin-left: -6px; }
 #menuList .menu-row:hover .handle { visibility: visible; }
 .meal-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }

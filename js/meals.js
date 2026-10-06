@@ -357,7 +357,22 @@ function renderMenus() {
     for (const [c, inC] of groupBy(list, cuisineOf, ranker(CUISINES))) {
       for (const [k, inK] of groupBy(inC, courseOf, abc)) {
         for (const [s, ms] of groupBy(inK, x => x.sub || '', abc)) {
-          out.push(dropAt(h('div', 'slot-head', [c, known(k), s].filter(Boolean).join(' › ')), [known(c), known(k), s]), ul(ms));
+          const path = [c, known(k), s].filter(Boolean).join(' › ');
+          if (q) { out.push(dropAt(h('div', 'slot-head', path), [known(c), known(k), s]), ul(ms)); continue; }
+          // 태그 보기: 분류 제목을 누르면 접기·펼치기 (처음엔 펼침, 접은 분류는 prefs.tagFold — 다른 태그에서도 접힘)
+          const key = groupKey(c, k, s), folded = !!(prefs.tagFold || {})[key];
+          const head = dropAt(h('div', 'menu-sub tag-path' + (folded ? ' folded' : '')), [known(c), known(k), s]);
+          head.append(h('span', 'fold', '▾'), h('span', 'name', path), h('span', 'count', ms.length));
+          head.title = folded ? '펼치기' : '접기';
+          head.addEventListener('click', () => {
+            const f = { ...prefs.tagFold };
+            if (folded) delete f[key]; else f[key] = true;
+            prefs.tagFold = f;
+            savePrefs();
+            renderMenus();
+          });
+          out.push(head);
+          if (!folded) out.push(ul(ms));
         }
       }
     }
