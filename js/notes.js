@@ -60,7 +60,8 @@ function renderNotes() {
   // 카테고리 없는 노트가 위, 그 아래 카테고리별로 (빈 카테고리도 제목은 보여줌: 끌어 놓을 곳)
   const out = list.filter(n => !noteCatOf(n)).map(n => noteRow(n, n === cur));
   for (const c of noteCats()) {
-    const head = h('div', 'note-cat', c.name);
+    const head = h('div', 'note-cat');
+    head.append(h('span', 'name', c.name), iconBtn('＋', `‘${c.name}’에 새 노트`, () => openNewNote(c)));
     head.style.setProperty('--c', c.color); // 제목 음영 = 카테고리 색
     head.dataset.cat = c.id;
     out.push(head, ...list.filter(n => n.cat === c.id).map(n => noteRow(n, n === cur)));
@@ -498,21 +499,25 @@ function shopAdder(n) {
 
 // ---------- 새 노트 ----------
 let newType = 'check';
+let newCat = null; // 카테고리 제목의 ＋로 열면 그 카테고리
 const syncTypePick = () => document.querySelectorAll('#typePick [data-type]').forEach(b => b.classList.toggle('on', b.dataset.type === newType));
 $('typePick').addEventListener('click', e => {
   const b = e.target.closest('[data-type]');
   if (b) { newType = b.dataset.type; syncTypePick(); }
 });
-$('addNoteBtn').addEventListener('click', () => {
+function openNewNote(cat) {
   newType = notes().some(n => n.type === 'shop') ? 'check' : 'shop';
   $('newNoteForm').reset();
+  newCat = cat ? cat.id : null;
+  $('newNoteForm').title.placeholder = cat ? `노트 이름 (${cat.name})` : '노트 이름';
   syncTypePick();
   $('newNote').showModal();
-});
+}
+$('addNoteBtn').addEventListener('click', () => openNewNote(null));
 $('newNoteCancel').addEventListener('click', () => $('newNote').close());
 $('newNoteForm').addEventListener('submit', e => {
   e.preventDefault();
-  const n = newRec('note', { type: newType, title: e.target.title.value.trim(), sections: [], text: '', order: nextOrder(notes()) });
+  const n = newRec('note', { type: newType, cat: newCat, title: e.target.title.value.trim(), sections: [], text: '', order: nextOrder(notes()) });
   db.recs.push(n);
   prefs.note = n.id;
   if (n.type === 'shop') prefs.tab = { ...prefs.tab, [n.id]: 'all' }; // 처음엔 늘 사는 것 목록부터
