@@ -1,6 +1,6 @@
 'use strict';
 // 식단: 달력(하루 칸 = 그날 메뉴) + 그날 식단 + 메뉴·레시피 목록
-// 아침·점심·저녁은 넣을 때만 고르고, 달력 칸에는 메뉴 이름만 (끼니 순서대로)
+// 아침·점심·저녁은 넣을 때만 고르고, 달력 칸에는 끼니마다 대표 메뉴 하나만 (끼니 색으로)
 // 메뉴에 재료를 적어 두면 '재료 → 장보기'로 장보기 노트의 '살 것'에 표시
 const SLOTS = { b: '아침', l: '점심', d: '저녁' };
 const slotRank = m => 'bld'.indexOf(m.slot);
@@ -36,6 +36,10 @@ function renderMeals() {
 }
 
 // ---------- 달력 ----------
+// 칸에는 끼니마다 대표 메뉴 하나 (끼니 색으로). 대표: 메인 > 국 > 반찬 > 밥·면 > 그 밖, 같으면 먼저 넣은 것
+const REP = ['메인', '국', '반찬', '밥·면'];
+const repRank = m => { const i = REP.indexOf((menuOf(m) || {}).course); return i < 0 ? REP.length : i; };
+const slotsOn = s => [...'bld'].map(k => mealsOn(s).filter(m => m.slot === k)).filter(ms => ms.length);
 function renderGrid() {
   const grid = $('grid'), today = todayStr(), v = view;
   const first = toNum(`${v.y}-${pad(v.m)}-01`), start = first - weekday(first);
@@ -65,10 +69,10 @@ function renderGrid() {
   probe.remove();
   const room = phone() ? Infinity : Math.max(1, Math.floor((cell0.clientHeight - head.offsetTop - head.offsetHeight - 4) / lineH));
   for (const [cell, s] of cells) {
-    const list = mealsOn(s), shown = list.length > room ? room - 1 : list.length;
-    for (const m of list.slice(0, shown)) {
-      const c = h('div', 'chip', mealName(m));
-      c.title = `${SLOTS[m.slot]} · ${mealName(m)}`;
+    const list = slotsOn(s), shown = list.length > room ? room - 1 : list.length;
+    for (const ms of list.slice(0, shown)) {
+      const c = h('div', `chip slot-${ms[0].slot}`, mealName(ms.reduce((a, b) => repRank(b) < repRank(a) ? b : a)));
+      c.title = `${SLOTS[ms[0].slot]} · ${ms.map(mealName).join(', ')}`;
       cell.append(c);
     }
     if (list.length > shown) cell.append(h('div', 'more', `+${list.length - shown}개 더`));
@@ -98,7 +102,7 @@ function renderDay() {
     if (!ms.length) continue;
     const ul = h('ul', 'list');
     ul.append(...ms.map(mealRow));
-    out.push(h('div', 'slot-head', SLOTS[k]), ul);
+    out.push(h('div', `slot-head slot-dot slot-${k}`, SLOTS[k]), ul);
   }
   $('mealList').replaceChildren(...(out.length ? out : [h('p', 'empty', '식단이 없어요')]));
   document.querySelectorAll('#slotSeg [data-slot]').forEach(b => b.classList.toggle('on', b.dataset.slot === slot()));

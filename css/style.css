@@ -526,6 +526,7 @@ dialog h2 + .hint { margin-top: 0; line-height: 1.5; }
 }
 .title-input:focus { border-bottom-color: var(--accent); }
 .field-label { display: block; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.field-label + .row { margin-top: 6px; }
 textarea {
   width: 100%;
   margin-top: 6px;
@@ -663,4 +664,6 @@ textarea:focus { border-color: var(--accent); }
   }
   .side { overflow: visible; gap: 12px; }
   #menuPanel { min-height: 0; }
+  .field-label + .row:has(.third) { gap: 6px; }
+  .text-input.third { padding-inline: 6px; font-size: 13px; } /* '아시아·기타'가 다 보이게 */
 }
