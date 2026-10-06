@@ -1,24 +1,26 @@
 'use strict';
 // 한 주 식단: 고른 주(일~토)의 요일·끼니에 한꺼번에 넣기
-//  - 랜덤 추천: 밥·국·반찬(1~3개)·메인을 켜고 끈 조합으로, 같은 주에는 되도록 안 겹치게. 메뉴를 누르면 그것만 다시 뽑기
+//  - 랜덤 추천: 밥·국·반찬(1~3개)·메인·간식·디저트를 켜고 끈 조합으로, 같은 주에는 되도록 안 겹치게. 메뉴를 누르면 그것만 다시 뽑기
 //    제철 재료 우선: 그 달 제철 재료(menu-presets.js SEASON_PRESETS, 고치면 계정에 저장)가 들어간 메뉴부터
 //  - 테마 추천: 고른 태그(메뉴 편집 › 태그, 예: #계절 #손님초대)가 붙은 메뉴에서 하루 1~3개 (종류·분류 상관없이)
 //  - 직접 고르기: 적은 메뉴를 고른 요일마다 (예: 아침 요거트)
 // 이미 그 끼니에 같은 메뉴가 있으면 건너뜀. meals.js 의 menus, pushMeal, mealsOn 등을 그대로 사용
 
-// 추천 칸마다 고르는 곳: 한식(종류가 비어 있어도)의 분류 › 하위분류
+// 추천 칸마다 고르는 곳: 한식(종류가 비어 있어도)의 분류 › 하위분류.
+// home이 있으면 그 기본 그룹이 지금 있는 종류 전부 (예: 디저트를 간식·디저트로 바꿨으면 간식·디저트)
 const PARTS = [
   { key: 'rice', label: '밥', course: '밥·면', subs: ['밥'] },
   { key: 'soup', label: '국', course: '국', subs: ['국', '찌개'] },
   { key: 'side', label: '반찬', course: '반찬', subs: ['볶음', '무침', '나물', '기타'] },
   { key: 'main', label: '메인', course: '메인', subs: ['구이', '볶음', '찜', '조림'] },
+  { key: 'dessert', label: '간식·디저트', home: ['디저트'] },
 ];
 // 테마 추천 칸: 고른 태그가 붙은 메뉴 아무거나
 const THEME = { key: 'theme', label: '테마' };
 const multi = p => p.key === 'side' || p === THEME; // 하루에 여러 개 뽑는 칸 (3개까지 뽑아 두고 보이는 개수만 씀)
 // 기기별 설정 (끼니는 방식마다 따로: 추천은 보통 저녁, 직접은 보통 아침)
 const plan = () => ({
-  mode: 'random', slots: { random: 'd', theme: 'd', pick: 'b' }, parts: { rice: true, soup: true, side: true, main: true },
+  mode: 'random', slots: { random: 'd', theme: 'd', pick: 'b' }, parts: { rice: true, soup: true, side: true, main: true, dessert: false },
   sides: 2, season: false, pick: [], theme: null, themeN: 2, ...prefs.plan,
 });
 const slotOf = o => o.slots[o.mode] || 'd'; // 예전 설정에는 테마 끼니가 없음
@@ -32,7 +34,7 @@ function setPlan(patch) {
 
 let planWeek = 0;  // 그 주 일요일 (일 번호)
 let planDays = []; // 넣을 요일 7개 (true/false)
-let picks = [];    // 요일별 추천 { rice, soup, side: [3개], main, theme: [3개] } — 메뉴 또는 null
+let picks = [];    // 요일별 추천 { rice, soup, side: [3개], main, dessert, theme: [3개] } — 메뉴 또는 null
 
 // ---------- 제철 ----------
 const seasonMonth = () => ymd(toStr(planWeek + 3))[1]; // 그 주 수요일의 달
@@ -61,8 +63,9 @@ const shuffle = a => {
 };
 // 이번 주에 안 쓴 것 중에서 (다 썼으면 아무거나), 제철 우선이면 제철인 것 먼저 (랜덤 추천만). avoid는 빼고
 function draw(p, avoid) {
-  const tag = p === THEME && themeOf(plan());
-  const all = menus().filter(x => (tag ? tagsOf(x).includes(tag) : inPart(p, x)) && !avoid.includes(x)), used = usedIn(p.key);
+  const tag = p === THEME ? themeOf(plan()) : null, home = p.home ? presetHome(p.home) || p.home : null;
+  const ok = p === THEME ? x => !!tag && tagsOf(x).includes(tag) : home ? x => startsWith(pathOf(x), home) : x => inPart(p, x);
+  const all = menus().filter(x => ok(x) && !avoid.includes(x)), used = usedIn(p.key);
   let c = all.filter(x => !used.includes(x));
   if (!c.length) c = all;
   if (plan().season && p !== THEME) {
@@ -72,7 +75,7 @@ function draw(p, avoid) {
   return c.length ? c[Math.floor(Math.random() * c.length)] : null;
 }
 function rollAll() {
-  picks = Array.from({ length: 7 }, () => ({ rice: null, soup: null, side: [null, null, null], main: null, theme: [null, null, null] }));
+  picks = Array.from({ length: 7 }, () => ({ rice: null, soup: null, side: [null, null, null], main: null, dessert: null, theme: [null, null, null] }));
   // 켠 요일 먼저, 순서는 섞어서 뽑기 (제철 메뉴가 앞 요일이나 끈 요일에 몰리지 않게)
   const days = [0, 1, 2, 3, 4, 5, 6];
   for (const i of [...shuffle(days.filter(i => planDays[i])), ...days.filter(i => !planDays[i])]) {

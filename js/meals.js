@@ -161,10 +161,14 @@ const NO_CAT = '미분류';
 const cuisineOf = x => x.cuisine || NO_CAT;
 const courseOf = x => x.course || NO_CAT;
 const COURSE_ORDER = Object.keys(COURSES);
-const courseOrder = cuisine => CUISINE_COURSES[cuisine] || COURSE_ORDER;
+// 이름을 바꾼 종류(예: 디저트 → 간식·디저트)는 원래 종류의 분류 순서
+const courseOrder = cuisine => CUISINE_COURSES[cuisine]
+  || (CUISINES.includes(cuisine) ? null : CUISINE_COURSES[presetCuisineOf(cuisine)]) || COURSE_ORDER;
 const subOrder = course => COURSES[course] || [];
 const rankIn = (known, v) => !v ? -1 : known.includes(v) ? known.indexOf(v) : known.length;
-const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
+// '기타'는 늘 뒤 (직접 만든 이름보다도)
+const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || (a === '기타') - (b === '기타')
+  || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
 function groupBy(list, key, order) {
   const m = new Map();
   for (const x of list) {
@@ -475,6 +479,29 @@ const presetMenus = () => MENU_PRESETS.flatMap(([cuisine, course, sub, names]) =
   const [, name, note] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?$/); // '김치찌개(참치/…)' → 이름, 메모
   return { name, note, cuisine, course, sub };
 }));
+let presetIndex = null; // 이름 → 기본 메뉴
+const presetOf = x => (presetIndex = presetIndex || new Map(presetMenus().map(p => [norm(p.name), p]))).get(norm(x.name));
+// 기본 메뉴의 그룹(예: ['디저트'])이 지금 있는 곳 = 그 그룹 기본 메뉴들이 가장 많이 있는 그룹. 이름을 바꾸거나 옮겼어도 따라감
+function presetHome(pp) {
+  const n = new Map();
+  for (const x of menus()) {
+    const p = presetOf(x);
+    if (p && startsWith([p.cuisine, p.course, p.sub], pp)) {
+      const k = pkey(pathOf(x).slice(0, pp.length));
+      n.set(k, (n.get(k) || 0) + 1);
+    }
+  }
+  return n.size ? [...n].sort((a, b) => b[1] - a[1])[0][0].split('›') : null;
+}
+// 거꾸로: 지금 종류 c에 있는 기본 메뉴들의 원래 종류 (예: 간식·디저트 → 디저트)
+function presetCuisineOf(c) {
+  const n = new Map();
+  for (const x of menus()) {
+    const p = x.cuisine === c && presetOf(x);
+    if (p) n.set(p.cuisine, (n.get(p.cuisine) || 0) + 1);
+  }
+  return n.size ? [...n].sort((a, b) => b[1] - a[1])[0][0] : null;
+}
 
 // 옛 분류(카테고리 cat › 서브카테고리 sub, 2026-10-06 하루 씀)를 새 분류로. 이 기기 데이터를 읽을 때와 계정에서 받을 때
 // 기본 메뉴에 있는 이름이면 그 분류, 아니면 옛 카테고리로 짐작. 바꾼 개수를 돌려줌 (저장은 부르는 쪽에서)
@@ -527,6 +554,15 @@ function upgradeMenus() {
 if (upgradeMenus()) persist();
 
 // 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴와 지운 메뉴는 건너뛰고, 있는 메뉴에 분류가 없으면 분류만 채움
+// 넣는 그룹은 같은 기본 그룹 메뉴들이 지금 있는 곳 (예: 디저트를 간식·디저트로 바꿨으면 간식·디저트 › 떡)
+function presetPlace(p) {
+  const pp = [p.cuisine, p.course, p.sub];
+  for (let L = 3; L > 0; L--) {
+    const home = presetHome(pp.slice(0, L));
+    if (home) return [...home, ...pp.slice(L)];
+  }
+  return pp;
+}
 $('presetBtn').addEventListener('click', () => {
   const have = new Map(recs('menu').map(x => [norm(x.name), x]));
   const gone = new Set(db.recs.filter(r => r.kind === 'menu' && r.deleted).map(r => norm(r.name))); // 지운 건 다시 넣지 않음
@@ -534,16 +570,18 @@ $('presetBtn').addEventListener('click', () => {
   for (const p of presetMenus()) {
     const x = have.get(norm(p.name));
     if (!x) {
-      if (!gone.has(norm(p.name))) add.push(newRec('menu', { name: p.name, cuisine: p.cuisine, course: p.course, sub: p.sub, ingredients: [], recipe: p.note || '', link: '' }));
+      if (gone.has(norm(p.name))) continue;
+      const [cuisine, course, sub] = presetPlace(p);
+      add.push(newRec('menu', { name: p.name, cuisine, course, sub, ingredients: [], recipe: p.note || '', link: '' }));
     } else if (!x.cuisine && !x.course) fill.push([x, p]);
   }
   if (!add.length && !fill.length) { toast('기본 메뉴가 이미 모두 있어요'); return; }
   const lines = [];
-  if (add.length) lines.push(`기본 메뉴 ${add.length}개를 메뉴·레시피에 추가해요.` + (add.length <= 20 ? `\n(${add.map(x => x.name).join(', ')})` : ''));
+  if (add.length) lines.push(`기본 메뉴 ${add.length}개를 메뉴·레시피에 추가해요.` + (add.length <= 30 ? `\n(${add.map(x => x.name).join(', ')})` : ''));
   if (fill.length) lines.push(`이미 있는 메뉴 ${fill.length}개는 분류만 채워요.`);
   if (!confirm(`${lines.join('\n')}\n계속할까요?`)) return;
   db.recs.push(...add);
-  for (const [x, p] of fill) { [x.cuisine, x.course, x.sub] = [p.cuisine, p.course, p.sub]; touch(x); }
+  for (const [x, p] of fill) { [x.cuisine, x.course, x.sub] = presetPlace(p); touch(x); }
   $('settings').close();
   save();
   toast(`메뉴 ${add.length + fill.length}개를 정리했어요`);
