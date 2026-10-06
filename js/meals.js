@@ -113,12 +113,16 @@ function mealRow(m) {
   li.addEventListener('click', () => openMenu(menu || newRec('menu', { name: m.name, ingredients: [], recipe: '', link: '' }), m));
   return li;
 }
-function addMeal(name) {
-  const menu = menuNamed(name), s = slot();
+// 식단에 메뉴 하나 (저장은 부르는 쪽에서)
+function pushMeal(date, s, name) {
+  const menu = menuNamed(name);
   db.recs.push(newRec('meal', {
-    date: selected, slot: s, name: menu ? menu.name : name, menu: menu ? menu.id : null,
-    order: nextOrder(mealsOn(selected).filter(m => m.slot === s)),
+    date, slot: s, name: menu ? menu.name : name, menu: menu ? menu.id : null,
+    order: nextOrder(mealsOn(date).filter(m => m.slot === s)),
   }));
+}
+function addMeal(name) {
+  pushMeal(selected, slot(), name);
   save();
 }
 $('slotSeg').addEventListener('click', e => {
@@ -129,29 +133,71 @@ $('slotSeg').addEventListener('click', e => {
   renderDay();
   if (!phone()) $('mealInput').focus();
 });
-// 메뉴 넣기: 적으면 메뉴 목록에서 찾아 보여줌 (없는 이름도 그냥 넣을 수 있음)
-const mealInput = $('mealInput'), mealSuggest = $('mealSuggest');
-mealInput.addEventListener('input', () => {
-  const q = norm(mealInput.value);
-  const hits = q ? menus().filter(x => norm(x.name).includes(q)).slice(0, 8) : [];
-  mealSuggest.replaceChildren(...hits.map(x => suggestBtn(x.name, () => {
-    mealInput.value = '';
-    mealSuggest.hidden = true;
-    addMeal(x.name);
-  })));
-  mealSuggest.hidden = !hits.length;
-});
-mealInput.addEventListener('blur', () => { mealSuggest.hidden = true; });
-onEnter(mealInput, text => { mealSuggest.hidden = true; addMeal(text); });
+// 메뉴 이름 칸: 적으면 메뉴 목록에서 찾아 보여주고, 고르거나 Enter면 onPick(이름) (없는 이름도 그냥 됨)
+function menuInput(input, box, onPick) {
+  input.addEventListener('input', () => {
+    const q = norm(input.value);
+    const hits = q ? menus().filter(x => norm(x.name).includes(q)).slice(0, 8) : [];
+    box.replaceChildren(...hits.map(x => suggestBtn(x.name, () => {
+      input.value = '';
+      box.hidden = true;
+      onPick(x.name);
+    })));
+    box.hidden = !hits.length;
+  });
+  input.addEventListener('blur', () => { box.hidden = true; });
+  onEnter(input, text => { box.hidden = true; onPick(text); });
+}
+menuInput($('mealInput'), $('mealSuggest'), addMeal);
 
 // ---------- 메뉴·레시피 ----------
+// 분류 = 큰 카테고리(cat) › 서브카테고리(sub). 둘 다 비어 있어도 됨 (카테고리가 없으면 '미분류')
+// 순서: 기본 메뉴(menu-presets.js)에 적힌 순서 → 그 밖은 가나다순 → 미분류는 맨 뒤. 서브카테고리 없는 메뉴는 맨 앞
+const NO_CAT = '미분류';
+const catOf = x => x.cat || NO_CAT;
+const CAT_ORDER = [...new Set(MENU_PRESETS.map(p => p[0]))];
+const subOrder = cat => MENU_PRESETS.filter(p => p[0] === cat).map(p => p[1]);
+const rankIn = (known, v) => !v ? -1 : known.includes(v) ? known.indexOf(v) : known.length;
+const ranker = known => (a, b) => (a === NO_CAT) - (b === NO_CAT) || rankIn(known, a) - rankIn(known, b) || a.localeCompare(b, 'ko');
+function groupBy(list, key, order) {
+  const m = new Map();
+  for (const x of list) {
+    const k = key(x);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(x);
+  }
+  return [...m].sort((a, b) => order(a[0], b[0]));
+}
+let menuCat = null; // 지금 보고 있는 카테고리 (찾는 중이면 null)
+
+// 카테고리를 골라 그 메뉴만 서브카테고리별로. 찾을 때는 모든 카테고리에서
 function renderMenus() {
   const q = norm($('menuSearch').value), all = menus();
+  const cats = groupBy(all, catOf, ranker(CAT_ORDER)).map(([c]) => c);
+  menuCat = q ? null : cats.includes(prefs.menuCat) ? prefs.menuCat : cats[0];
+  $('menuCats').hidden = cats.length < 2;
+  $('menuCats').replaceChildren(...cats.map(c => button(c, () => {
+    prefs.menuCat = c;
+    savePrefs();
+    $('menuSearch').value = '';
+    renderMenus();
+  }, c === menuCat ? 'on' : '')));
   // 재료로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
-  const list = q ? all.filter(x => norm(x.name).includes(q) || (x.ingredients || []).some(g => norm(g).includes(q))) : all;
+  const list = q ? all.filter(x => norm(x.name).includes(q) || (x.ingredients || []).some(g => norm(g).includes(q)))
+    : all.filter(x => catOf(x) === menuCat);
   $('menuCount').textContent = all.length || '';
-  $('menuList').replaceChildren(...(list.length ? list.map(menuRow)
-    : [h('li', 'empty', all.length ? '찾는 메뉴가 없어요' : '메뉴를 등록하면 식단에 골라 넣고, 재료를 장보기로 보낼 수 있어요')]));
+  const out = [];
+  for (const [c, inCat] of groupBy(list, catOf, ranker(CAT_ORDER))) {
+    for (const [s, ms] of groupBy(inCat, x => x.sub || '', ranker(subOrder(c)))) {
+      const head = q ? [c, s].filter(Boolean).join(' › ') : s;
+      if (head) out.push(h('div', 'slot-head', head));
+      const ul = h('ul', 'list');
+      ul.append(...ms.map(menuRow));
+      out.push(ul);
+    }
+  }
+  $('menuList').replaceChildren(...(out.length ? out
+    : [h('p', 'empty', all.length ? '찾는 메뉴가 없어요' : '메뉴를 등록하면 식단에 골라 넣고, 재료를 장보기로 보낼 수 있어요. (설정 › 기본 메뉴 넣기)')]));
 }
 function menuRow(x) {
   const li = h('li'), n = (x.ingredients || []).length;
@@ -162,7 +208,10 @@ function menuRow(x) {
   return li;
 }
 $('menuSearch').addEventListener('input', renderMenus);
-$('newMenuBtn').addEventListener('click', () => openMenu(newRec('menu', { name: '', ingredients: [], recipe: '', link: '' })));
+// 새 메뉴는 지금 보고 있는 카테고리로
+$('newMenuBtn').addEventListener('click', () => openMenu(newRec('menu', {
+  name: '', cat: menuCat && menuCat !== NO_CAT ? menuCat : '', sub: '', ingredients: [], recipe: '', link: '',
+})));
 
 // 메뉴 편집 창. meal을 주면 저장할 때 그 식단에 이 메뉴를 연결
 const menuForm = $('menuForm');
@@ -173,10 +222,24 @@ function syncMenuLink() {
   $('menuLinkOpen').hidden = !/^https?:\/\//.test(v);
   $('menuLinkOpen').href = v;
 }
+// 분류 칸 자동완성: 있는 카테고리, 고른 카테고리의 서브카테고리
+function fillCatLists() {
+  const all = menus(), cat = menuForm.cat.value.trim();
+  const options = (values, order) => [...new Set(values.filter(Boolean))].sort(order).map(v => {
+    const o = h('option');
+    o.value = v;
+    return o;
+  });
+  $('menuCatList').replaceChildren(...options(all.map(x => x.cat), ranker(CAT_ORDER)));
+  $('menuSubList').replaceChildren(...options(all.filter(x => x.cat === cat).map(x => x.sub), ranker(subOrder(cat))));
+}
 function openMenu(menu, meal) {
   editingMenu = menu;
   linkMeal = meal || null;
   menuForm.name.value = menu.name;
+  menuForm.cat.value = menu.cat || '';
+  menuForm.sub.value = menu.sub || '';
+  fillCatLists();
   menuForm.ingredients.value = (menu.ingredients || []).join('\n');
   menuForm.recipe.value = menu.recipe || '';
   menuForm.link.value = menu.link || '';
@@ -186,15 +249,19 @@ function openMenu(menu, meal) {
   if (!menu.name) menuForm.name.focus();
 }
 menuForm.link.addEventListener('input', syncMenuLink);
+menuForm.cat.addEventListener('input', fillCatLists);
 menuForm.addEventListener('submit', e => {
   e.preventDefault();
   const m = editingMenu;
   m.name = menuForm.name.value.trim();
+  m.cat = menuForm.cat.value.trim();
+  m.sub = menuForm.sub.value.trim();
   m.ingredients = parseIngredients(menuForm.ingredients.value);
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
   touch(m);
-  if (!db.recs.includes(m)) db.recs.push(m);
+  // 새 메뉴는 목록에서 그 카테고리를 열어 보여줌
+  if (!db.recs.includes(m)) { db.recs.push(m); prefs.menuCat = catOf(m); savePrefs(); }
   if (linkMeal && linkMeal.menu !== m.id) { linkMeal.menu = m.id; touch(linkMeal); }
   $('menuEditor').close();
   save();
@@ -221,6 +288,30 @@ $('weekShopBtn').addEventListener('click', () => {
   }
   if (!names.length) { alert(`${range} 식단에 재료가 적힌 메뉴가 없어요.\n식단의 메뉴를 눌러 재료를 적어 주세요.`); return; }
   addToShop(names, `${range} 식단 재료`);
+});
+
+// 설정 > 기본 메뉴 넣기 (menu-presets.js). 이름이 같은 메뉴는 건너뛰고, 그 메뉴에 분류가 없으면 분류만 채움
+$('presetBtn').addEventListener('click', () => {
+  const have = new Map(recs('menu').map(x => [norm(x.name), x]));
+  const add = [], fill = [];
+  for (const [cat, sub, names] of MENU_PRESETS) {
+    for (const item of names.split(',')) {
+      const [, name, note] = item.trim().match(/^(.+?)(?:\s*\((.+)\))?$/); // '김치찌개(참치/…)' → 이름, 메모
+      const x = have.get(norm(name));
+      if (!x) add.push(newRec('menu', { name, cat, sub, ingredients: [], recipe: note || '', link: '' }));
+      else if (!x.cat) fill.push([x, cat, sub]);
+    }
+  }
+  if (!add.length && !fill.length) { toast('기본 메뉴가 이미 모두 있어요'); return; }
+  const lines = [];
+  if (add.length) lines.push(`기본 메뉴 ${add.length}개를 메뉴·레시피에 추가해요.`);
+  if (fill.length) lines.push(`이미 있는 메뉴 ${fill.length}개는 분류만 채워요.`);
+  if (!confirm(`${lines.join('\n')}\n계속할까요?`)) return;
+  db.recs.push(...add);
+  for (const [x, cat, sub] of fill) { x.cat = cat; x.sub = sub; touch(x); }
+  $('settings').close();
+  save();
+  toast(`메뉴 ${add.length + fill.length}개를 정리했어요`);
 });
 
 // 재료를 장보기(첫 번째 장보기 노트)의 '살 것'으로. 목록에 있으면 표시만, 없으면 '기타' 묶음(없으면 미분류)에 새로

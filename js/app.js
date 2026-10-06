@@ -1,5 +1,5 @@
 'use strict';
-// 일상노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
+// 살림노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
 // 노트는 notes.js, 식단은 meals.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
 
 // ---------- 날짜 유틸: 'YYYY-MM-DD' 문자열 ↔ 일(day) 번호 ----------
@@ -18,8 +18,9 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 // db.recs = 노트·항목·메뉴·식단을 한 배열에 (kind로 구분). 동기화는 한 줄(rec)씩, updatedAt이 늦은 쪽이 이김
 //   note:  { type: 'shop'|'check'|'memo', title, sections: [{ id, name }], text, order }
 //   entry: { note, section, text, done, need, order }   need = 장보기의 '살 것'
-//   menu:  { name, ingredients: [], recipe, link }
+//   menu:  { name, cat, sub, ingredients: [], recipe, link }   cat·sub = 분류 (큰 카테고리 › 서브카테고리, 없으면 '')
 //   meal:  { date, slot: 'b'|'l'|'d', name, menu, order }
+//   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
@@ -233,7 +234,7 @@ $('importFile').addEventListener('change', async e => {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { alert('읽을 수 없는 파일이에요.'); return; }
-  if (!Array.isArray(data.recs)) { alert('일상노트 백업 파일이 아니에요.'); return; }
+  if (!Array.isArray(data.recs)) { alert('살림노트 백업 파일이 아니에요.'); return; }
   if (!confirm('지금 데이터를 백업 파일 내용으로 바꿀까요?')) return;
   data.owner = db.owner; // 로그인 중이면 지금 계정 데이터로 취급
   data.recs.forEach(touch); // 계정에 있는 값보다 새것으로 → 백업 내용이 이김
