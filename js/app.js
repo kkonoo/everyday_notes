@@ -1,6 +1,6 @@
 'use strict';
 // 살림노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
-// 노트는 notes.js, 식단은 meals.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
+// 노트는 notes.js, 식단은 meals.js, 가계부는 budget.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
 
 // ---------- 날짜 유틸: 'YYYY-MM-DD' 문자열 ↔ 일(day) 번호 ----------
 const DAY_MS = 86400000;
@@ -24,6 +24,9 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
 //   notecat: { name, color, order }   노트에 붙이는 내 카테고리 (note.cat = id). 노트 색 = 카테고리 색, 없으면 종류 색
+//   bline: { side: 'in'|'out'|'save' (수입·지출·저축), group (지출 분류 id), account (통장 id), name, plans: { 'YYYY-MM': 금액 }, actual: { 달: 금액 }, fixed, from, to, order }   가계부 예산 항목
+//   asset: { type, name, values: { 'YYYY-MM': 금액 }, from, to, order }   재산 (대출은 빼기) / goal: { name, target, by: 'YYYY-MM', assets: [id] (비면 순자산 전체), order }
+//   bconf: { groups: [{ id, name }], accounts: [{ id, name }] }   id = 'budget' — 가계부 지출 분류·통장 (순서대로)
 //   + 공통 { id, kind, createdAt, updatedAt, deleted }
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
@@ -104,16 +107,16 @@ function toast(text, ms = 2000) {
   toastTimer = setTimeout(() => $('toast').classList.remove('show'), ms);
 }
 
-// 보기: notes(노트) / meals(식단)
-// 입력 중이던 칸(data-key)은 다시 그린 뒤에도 글자·커서 그대로 (동기화로 다시 그려져도)
+// 보기: notes(노트) / meals(식단) / budget(가계부)
+// 입력 중이던 칸(data-key)은 다시 그린 뒤에도 글자·커서(선택) 그대로 (동기화로 다시 그려져도)
 let focusNext = null; // 다시 그린 뒤 커서를 둘 칸의 data-key (새 묶음 이름 등)
 function render() {
-  const v = prefs.view === 'meals' ? 'meals' : 'notes';
+  const v = ['meals', 'budget'].includes(prefs.view) ? prefs.view : 'notes';
   document.body.dataset.view = v;
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   const a = document.activeElement;
-  const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart } : null;
-  if (v === 'meals') renderMeals(); else renderNotes();
+  const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart, end: a.selectionEnd } : null;
+  if (v === 'meals') renderMeals(); else if (v === 'budget') renderBudget(); else renderNotes();
   const key = focusNext || (keep && keep.key);
   focusNext = null;
   const e = key && document.querySelector(`[data-key="${CSS.escape(key)}"]`);
@@ -121,7 +124,7 @@ function render() {
   if (keep) e.value = keep.value;
   e.focus();
   if (!keep) e.select();
-  else try { e.setSelectionRange(keep.pos, keep.pos); } catch { /* 커서 위치를 못 정하는 칸 */ }
+  else try { e.setSelectionRange(keep.pos, keep.end); } catch { /* 커서 위치를 못 정하는 칸 */ }
 }
 $('viewSeg').addEventListener('click', e => {
   const b = e.target.closest('[data-view]');
@@ -260,7 +263,7 @@ if (phone()) {
     const dlg = document.querySelector('dialog[open]'), open = document.querySelector('.suggest:not([hidden])');
     if (dlg) dlg.close();
     else if (open) document.activeElement.blur();
-    else if (prefs.view === 'meals') { prefs.view = 'notes'; savePrefs(); render(); }
+    else if (prefs.view === 'meals' || prefs.view === 'budget') { prefs.view = 'notes'; savePrefs(); render(); }
     else if (editing) { editing = false; render(); }
     else if (notePage) { notePage = false; render(); }
     else {

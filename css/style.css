@@ -68,7 +68,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .month-title { min-width: 130px; padding: 0 6px; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 .meal-nav .btn { margin-left: 8px; }
 #backBtn { display: none; }
-body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title { display: none; }
+body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title, body[data-view="budget"] .view-title { display: none; }
 
 .btn {
   border: 1px solid var(--line);
@@ -131,9 +131,10 @@ body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title { display
 .spacer { flex: 1; }
 
 /* ---------- 보기 전환 ---------- */
-.notes-view, .meals-view { display: none; flex: 1; min-height: 0; padding: 0 24px 24px; }
+.notes-view, .meals-view, .budget-view { display: none; flex: 1; min-height: 0; padding: 0 24px 24px; }
 body[data-view="notes"] .notes-view { display: flex; gap: 18px; }
 body[data-view="meals"] .meals-view { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+body[data-view="budget"] .budget-view { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; }
 
 /* ---------- 노트 목록 ---------- */
 .note-nav { flex: none; display: flex; flex-direction: column; gap: 2px; width: 220px; overflow-y: auto; }
@@ -656,6 +657,106 @@ textarea:focus { border-color: var(--accent); }
 .plan-items .none { padding: 3px 2px; font-size: 12px; color: var(--faint); }
 .plan-chosen { margin: 8px 0; }
 
+/* ---------- 가계부 (budget.js) ---------- */
+.sheet { --amt: 124px; --dif: 92px; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
+.sheet > * { flex: none; }
+/* 요약: 수입·지출·저축·남는 돈 + 분류별 지출 막대 */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tile { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.tile .label { font-size: 12px; color: var(--muted); }
+.tile .value { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.tile .plan { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bsum > .hint { margin: 12px 2px 0; line-height: 1.6; }
+.meters { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.meter-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13px; }
+.meter-row .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.meter-row .nums { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meter-row .bad { color: var(--sun); font-weight: 600; }
+/* 계획 대비 막대: 채움 = 세이지, 바탕 = 옅은 세이지. 넘으면 빨강 */
+.meter { height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; }
+.meter > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.meter.over { background: color-mix(in srgb, var(--sun) 15%, transparent); }
+.meter.over > i { background: var(--sun); }
+
+/* 예산표 한 줄: 이름 | 계획 | 실제 | 차이 */
+.bsec { padding: 4px 12px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.brow { display: grid; grid-template-columns: minmax(0, 1fr) var(--amt) var(--amt) var(--dif); align-items: center; column-gap: 6px; }
+.bname { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+.bnum { padding-right: 7px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } /* 금액 칸 글자와 줄 맞춤 */
+.bnum .cap { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+.bsec-head { margin-bottom: 4px; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.bsec-head .bname { font-size: 17px; font-weight: 700; }
+.bsec-head .bname .hint { font-weight: 400; }
+.bsec-head .bnum b { font-size: 15px; }
+.bgroup { margin-top: 8px; padding: 4px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+.bgroup .bnum { font-size: 13px; font-weight: 600; color: var(--muted); }
+.bline { padding: 1px 4px; border-radius: 8px; font-size: var(--list-font); }
+.bline:hover { background: var(--surface-2); }
+.btext { min-width: 0; overflow-wrap: anywhere; cursor: pointer; }
+.btext:hover { color: var(--accent); }
+.bline .handle, .bgroup .handle { margin-left: -6px; visibility: hidden; }
+.bline:hover .handle, .bgroup:hover .handle { visibility: visible; }
+.btools { display: flex; visibility: hidden; }
+.bgroup:hover .btools { visibility: visible; }
+.badge { padding: 0 7px; border-radius: 99px; background: var(--accent-soft); font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+select.acct { max-width: 130px; padding: 0 8px; border: 1px solid var(--line); border-radius: 99px; background: transparent; font-size: 11px; color: var(--muted); appearance: none; cursor: pointer; }
+select.acct.none { border-style: dashed; color: var(--faint); }
+.amt {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.amt:hover { border-color: var(--line); }
+.amt:focus { border-color: var(--accent); background: var(--surface); }
+.amt::placeholder { color: var(--faint); } /* 안 적으면 쓰는 금액 (매달 같은 금액, 재산의 지난 금액) */
+.bdiff { padding-right: 4px; font-size: 13px; }
+.bdiff.good { color: var(--accent); }
+.bdiff.bad { color: var(--sun); }
+.badd { margin-top: 2px; padding: 6px 10px; font-size: 14px; }
+.add-group { margin-top: 10px; }
+
+/* 오른쪽: 목표 · 재산 · 통장별 */
+.goal { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 10px; cursor: pointer; }
+.goal:hover { background: var(--surface-2); }
+.goal-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: var(--list-font); font-weight: 600; }
+.goal-head .pct { font-variant-numeric: tabular-nums; }
+.goal .meter { margin-bottom: 4px; }
+.goal .hint { line-height: 1.5; }
+#assetList > .hint { margin: 0 0 6px; }
+.agroup { display: flex; justify-content: space-between; margin: 10px 11px 2px 8px; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) 132px; align-items: center; gap: 6px; padding: 1px 4px 1px 8px; border-radius: 8px; font-size: var(--list-font); }
+.arow:hover { background: var(--surface-2); }
+/* 순자산 추이 (선 1개): 선 2px, 점 r4 + 바탕색 테두리, 옅은 면, 가는 바닥선 */
+.trend { display: block; margin: 0 0 4px; }
+.trend .hit { fill: transparent; }
+.trend .hit:hover { fill: var(--surface-2); }
+.trend .area { fill: var(--accent); opacity: .1; }
+.trend .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .base { stroke: var(--line); stroke-width: 1; }
+.trend .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.trend text { fill: var(--muted); font-size: 10px; text-anchor: middle; }
+.trend text.now { fill: var(--text); font-weight: 700; }
+.trend .area, .trend .line, .trend .base, .trend .dot, .trend text { pointer-events: none; }
+.acct-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; padding: 6px 4px 6px 8px; border-radius: 8px; }
+.acct-row:hover { background: var(--surface-2); }
+.acct-row .btext { flex: 1; font-size: var(--list-font); cursor: default; }
+.acct-row .btext:hover { color: inherit; }
+.acct-row .icon-btn { visibility: hidden; }
+.acct-row:hover .icon-btn { visibility: visible; }
+.acct-row .net { margin-left: 6px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.acct-row .meta { flex-basis: 100%; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* 창: 체크 칸 한 줄 (설명은 아래로) */
+.check-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 12px 0; font-size: 14px; cursor: pointer; }
+.check-row input { accent-color: var(--accent); }
+.check-row .hint { flex-basis: 100%; padding-left: 24px; }
+#goalAssets { margin: 0 0 8px 88px; }
+
 .type-pick { display: flex; flex-direction: column; gap: 6px; }
 .type-pick button {
   display: flex;
@@ -694,8 +795,22 @@ textarea:focus { border-color: var(--accent); }
   body { height: auto; min-height: 100vh; }
   .topbar { padding: 12px 12px 10px; }
   .month-title { min-width: 104px; font-size: 18px; }
-  .notes-view, .meals-view { padding: 0 12px 16px; }
-  body[data-view="meals"] .meals-view { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .notes-view, .meals-view, .budget-view { padding: 0 12px 16px; }
+  body[data-view="meals"] .meals-view, body[data-view="budget"] .budget-view { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+  /* 가계부: 차이 칸은 빼고 실제 금액 글자색으로 (넘으면 빨강) */
+  .sheet { --amt: 86px; overflow: visible; }
+  .brow { grid-template-columns: minmax(0, 1fr) var(--amt) var(--amt); column-gap: 4px; }
+  .brow > .bdiff { display: none; }
+  .bline[data-diff="bad"] .amt[data-col="act"] { color: var(--sun); }
+  .bline[data-diff="good"] .amt[data-col="act"] { color: var(--accent); }
+  .amt { padding-inline: 4px; font-size: 14px; }
+  .bnum { padding-right: 5px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bsec { padding-inline: 8px; }
+  .bline { padding-block: 3px; }
+  .bline .handle, .bgroup .handle, .btools, .acct-row .icon-btn { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
+  #goalAssets { margin-left: 0; }
 
   /* 노트: 목록 화면 ↔ 노트 화면 */
   body[data-page="note"] .note-nav, body[data-page="list"] .note { display: none; }

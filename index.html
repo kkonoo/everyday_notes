@@ -30,6 +30,7 @@
     <div class="seg" id="viewSeg">
       <button type="button" data-view="notes">노트</button>
       <button type="button" data-view="meals">식단</button>
+      <button type="button" data-view="budget">가계부</button>
     </div>
     <button class="btn" id="accountBtn" hidden>로그인</button>
     <button class="icon-btn" id="themeBtn" title="라이트/다크 전환">◐</button>
@@ -87,6 +88,36 @@
       <div class="pills" id="menuCuisines"></div>
       <div class="pills" id="menuCourses"></div>
       <div id="menuList"></div>
+    </section>
+  </aside>
+</main>
+
+<!-- 가계부: 왼쪽 달 예산표(요약 + 수입·지출·저축의 계획/실제), 오른쪽 목표·재산·통장별 -->
+<main class="budget-view">
+  <section class="sheet" id="budgetSheet"></section>
+  <aside class="side">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>목표</h2>
+        <button class="icon-btn small" id="newGoalBtn" title="새 목표">＋</button>
+      </div>
+      <div id="goalList"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>재산</h2>
+        <span class="count" id="netWorth"></span>
+        <button class="icon-btn small" id="newAssetBtn" title="재산 추가">＋</button>
+      </div>
+      <div id="assetList"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>통장별</h2>
+        <span class="count">계획 기준</span>
+        <button class="icon-btn small" id="newAccountBtn" title="통장 추가">＋</button>
+      </div>
+      <div id="accountList"></div>
     </section>
   </aside>
 </main>
@@ -227,6 +258,61 @@
   </div>
 </dialog>
 
+<dialog id="lineEditor">
+  <form id="lineForm">
+    <input name="name" class="title-input" placeholder="항목 이름" required autocomplete="off">
+    <div class="row"><label>구분</label><select name="kind"></select></div>
+    <div class="row"><label>통장</label><select name="account" id="lineAccount"></select></div>
+    <label class="check-row"><input type="checkbox" name="fixed"> 매달 같은 금액 <span class="hint">실제를 안 적어도 계획 금액으로 쳐요 (월세·통신비·월급 등)</span></label>
+    <label class="check-row"><input type="checkbox" name="last"> <span id="lineLastLabel"></span> <span class="hint">다음 달부터 안 보여요 (경조사비처럼 한 번만)</span></label>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="lineDelBtn">삭제</button>
+      <button type="button" class="btn danger" id="lineEndBtn">이번 달부터 빼기</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="lineCancel">취소</button>
+      <button class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="assetEditor">
+  <form id="assetForm">
+    <input name="name" class="title-input" placeholder="재산 이름 (예: 카카오 적금)" required autocomplete="off">
+    <div class="row"><label>종류</label><select name="type"></select></div>
+    <div class="row"><label id="assetAmountLabel">금액</label><input name="amount" class="text-input" inputmode="tel" autocomplete="off"></div>
+    <p class="hint">달마다 금액을 적어 두면 순자산 변화가 그래프로 보여요. 안 적은 달은 그 전 금액 그대로.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="assetDelBtn">삭제</button>
+      <button type="button" class="btn danger" id="assetEndBtn">이번 달부터 없음</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="assetCancel">취소</button>
+      <button class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="goalEditor">
+  <form id="goalForm">
+    <input name="name" class="title-input" placeholder="목표 (예: 내 집 마련)" required autocomplete="off">
+    <div class="row wide"><label>목표 금액</label><input name="amount" class="text-input" inputmode="tel" required autocomplete="off"></div>
+    <div class="row wide"><label>언제까지</label><input name="by" type="month" class="text-input" required></div>
+    <div class="row wide">
+      <label>모으는 곳</label>
+      <select name="basis">
+        <option value="">순자산 전체</option>
+        <option value="pick">고른 재산만</option>
+      </select>
+    </div>
+    <div class="pills" id="goalAssets"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="goalDelBtn">삭제</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="goalCancel">취소</button>
+      <button class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="settings">
   <section id="accountSection" hidden>
     <h2>계정</h2>
@@ -283,6 +369,7 @@
 <script src="js/meals.js"></script>
 <script src="js/planner.js"></script>
 <script src="js/menu-groups.js"></script>
+<script src="js/budget.js"></script>
 <script type="module" src="js/sync.js"></script>
 </body>
 </html>

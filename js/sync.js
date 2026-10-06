@@ -91,7 +91,7 @@ async function start() {
     if (db.owner !== uid) {
       const n = db.recs.filter(r => !r.deleted).length;
       const merge = !db.owner && n > 0 &&
-        confirm(`이 기기에 저장된 노트·식단 ${n}개를 ${user.email} 계정에 합칠까요?\n(취소하면 계정에 있는 것만 보여요)`);
+        confirm(`이 기기에 저장된 노트·식단·가계부 ${n}개를 ${user.email} 계정에 합칠까요?\n(취소하면 계정에 있는 것만 보여요)`);
       if (!merge) db = { version: 1, recs: [] };
       db.owner = uid;
       persist();

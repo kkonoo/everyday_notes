@@ -79,9 +79,10 @@ function renderGrid() {
     if (list.length > shown) cell.append(h('div', 'more', `+${list.length - shown}개 더`));
   }
 }
-$('prevBtn').addEventListener('click', () => shiftMonth(-1));
-$('nextBtn').addEventListener('click', () => shiftMonth(1));
-$('todayBtn').addEventListener('click', () => select(todayStr()));
+// 달 넘기기 단추는 가계부와 같이 씀 (가계부는 budget.js)
+$('prevBtn').addEventListener('click', () => { if (prefs.view === 'meals') shiftMonth(-1); });
+$('nextBtn').addEventListener('click', () => { if (prefs.view === 'meals') shiftMonth(1); });
+$('todayBtn').addEventListener('click', () => { if (prefs.view === 'meals') select(todayStr()); });
 // 폰: 달력을 옆으로 밀면 달 넘기기
 let swipe0 = null;
 $('grid').addEventListener('touchstart', e => {

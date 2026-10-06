@@ -4,7 +4,7 @@
 const CACHE = 'everyday-v1';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/holidays.js', 'js/app.js', 'js/notes.js', 'js/menu-presets.js', 'js/meals.js', 'js/planner.js', 'js/menu-groups.js', 'js/sync.js', 'js/firebase-config.js',
+  'js/holidays.js', 'js/app.js', 'js/notes.js', 'js/menu-presets.js', 'js/meals.js', 'js/planner.js', 'js/menu-groups.js', 'js/budget.js', 'js/sync.js', 'js/firebase-config.js',
   'icons/app-192.png', 'icons/app-512.png', 'icons/app-maskable-192.png', 'icons/app-maskable-512.png',
 ];
 
