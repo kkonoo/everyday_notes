@@ -747,8 +747,9 @@ select.acct.none { border-style: dashed; color: var(--faint); }
 .acct-row:hover { background: var(--surface-2); }
 .acct-row .btext { flex: 1; font-size: var(--list-font); cursor: default; }
 .acct-row .btext:hover { color: inherit; }
-.acct-row .icon-btn { visibility: hidden; }
-.acct-row:hover .icon-btn { visibility: visible; }
+.acct-row .icon-btn, .acct-row .handle { visibility: hidden; }
+.acct-row:hover .icon-btn, .acct-row:hover .handle { visibility: visible; }
+.acct-row .handle { margin-left: -6px; }
 .acct-row .net { margin-left: 6px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .acct-row .meta { flex-basis: 100%; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* 창: 체크 칸 한 줄 (설명은 아래로) */
@@ -809,7 +810,7 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bsec { padding-inline: 8px; }
   .bline { padding-block: 3px; }
-  .bline .handle, .bgroup .handle, .btools, .acct-row .icon-btn { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
+  .bline .handle, .bgroup .handle, .btools, .acct-row .icon-btn, .acct-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
   #goalAssets { margin-left: 0; }
 
   /* 노트: 목록 화면 ↔ 노트 화면 */

@@ -189,7 +189,7 @@ function editBar(n) {
     cs.append(o);
   }
   cs.value = (noteCatOf(n) || {}).id || '';
-  cs.title = '카테고리 (설정 › 노트에서 이름·색 바꾸기)';
+  cs.title = '카테고리 (설정 › 노트 › 카테고리 편집에서 이름·색 바꾸기)';
   cs.addEventListener('change', () => {
     const c = cs.value === '+' ? addNoteCat() : noteCats().find(x => x.id === cs.value) || null;
     if (cs.value === '+' && !c) { cs.value = (noteCatOf(n) || {}).id || ''; return; }
@@ -215,7 +215,7 @@ function editBar(n) {
   bar.append(h('span', 'spacer'), button('복사', () => copyNote(n)), button('노트 삭제', () => deleteNote(n), 'btn danger'));
   return bar;
 }
-// 설정 › 노트 카테고리: 색(점을 누르면 고르기)·이름 바꾸기·지우기 (지우면 그 노트들은 카테고리 없음)
+// 설정 › 노트 › 카테고리 편집: 색(점을 누르면 고르기)·이름 바꾸기·지우기 (지우면 그 노트들은 카테고리 없음)
 let pickingCat = null; // 색 고르는 중인 카테고리
 function renderNoteCats() {
   const out = [], dot = (color, onClick, on) => {
@@ -259,7 +259,14 @@ function renderNoteCats() {
   out.push(button('+ 카테고리', () => { if (addNoteCat()) { save(); renderNoteCats(); } }));
   $('noteCatManage').replaceChildren(...out);
 }
-$('settingsBtn').addEventListener('click', () => { pickingCat = null; renderNoteCats(); });
+// 설정 › 노트 › 카테고리 편집 (따로 여는 창)
+$('noteCatsBtn').addEventListener('click', () => {
+  $('settings').close();
+  pickingCat = null;
+  renderNoteCats();
+  $('noteCats').showModal();
+});
+$('noteCatsClose').addEventListener('click', () => $('noteCats').close());
 
 // 복사본은 체크를 다 푼 상태로 (여행 짐 → '10월 제주' 같은 새 목록)
 function copyNote(n) {

@@ -167,14 +167,16 @@ function groupHead(g, ls) {
   tools.querySelectorAll('button').forEach(b => { b.tabIndex = -1; });
   row.firstChild.prepend(handle);
   row.firstChild.append(tools);
-  sortable(handle, row, '.bsec[data-side="out"] .bgroup:not([data-group=""])', (t, before) => {
-    const c = confRec(), me = c.groups.find(x => x.id === g.id), arr = c.groups.filter(x => x !== me);
-    arr.splice(arr.findIndex(x => x.id === t.dataset.group) + (before ? 0 : 1), 0, me);
-    c.groups = arr;
-    touch(c);
-    save();
-  });
+  sortable(handle, row, '.bsec[data-side="out"] .bgroup:not([data-group=""])', (t, before) => moveConf('groups', g.id, t.dataset.group, before));
   return row;
+}
+// 분류(groups)·통장(accounts) 순서: id를 targetId 앞/뒤로
+function moveConf(key, id, targetId, before) {
+  const c = confRec(), me = c[key].find(x => x.id === id), arr = c[key].filter(x => x !== me);
+  arr.splice(arr.findIndex(x => x.id === targetId) + (before ? 0 : 1), 0, me);
+  c[key] = arr;
+  touch(c);
+  save();
 }
 function addOutGroup() {
   const name = (prompt('새 분류 이름 (예: 보험, 경조사)') || '').trim();
@@ -215,6 +217,7 @@ function lineRow(l) {
   if (accounts().length) name.append(accountSelect(l));
   const p = planOf(l, bm), a = actualOf(l, bm), d = a == null ? 0 : a - p;
   const plan = amtInput(`plan:${l.id}`, 'plan', upTo(l.plans, bm), null, v => setLinePlan(l, v));
+  plan.title = `${+bm.slice(5)}월부터 이 금액 (지난달은 그대로)`;
   const act = amtInput(`act:${l.id}`, 'act', l.actual?.[bm] ?? null, autoOf(l, bm), v => setLineActual(l, v));
   if (autoOf(l, bm) != null) act.title = '매달 같은 금액: 안 적으면 계획 금액으로 쳐요 (흐린 글씨)';
   const diff = h('span', 'bdiff', d ? signed(d) : '');
@@ -380,6 +383,12 @@ function renderAccounts() {
     const got = sum(ls.filter(l => l.side === 'in')), spent = sum(ls.filter(l => l.side !== 'in')), net = got - spent;
     if (!a && !got && !spent) continue;
     const row = h('div', 'acct-row');
+    if (a) { // ⋮⋮ 끌어서 순서 바꾸기 (항목의 통장 고르기 목록도 이 순서)
+      const handle = dragHandle();
+      row.dataset.id = a.id;
+      row.append(handle);
+      sortable(handle, row, '#accountList .acct-row[data-id]', (t, before) => moveConf('accounts', a.id, t.dataset.id, before));
+    }
     row.append(h('span', 'btext', a ? a.name : '통장 미정'));
     if (a) row.append(iconBtn('✎', '통장 이름 바꾸기', () => renameAccount(a)), iconBtn('✕', '통장 지우기', () => deleteAccount(a)));
     row.append(h('span', 'net', net < 0 ? `${won(-net)} 채우기` : `${signed(net)} 남음`),

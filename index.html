@@ -258,12 +258,19 @@
   </div>
 </dialog>
 
+<dialog id="noteCats">
+  <h2>노트 카테고리</h2>
+  <p class="hint">⋮⋮ 끌어서 순서 바꾸기 · 색 점을 눌러 색 바꾸기 · ✎ 이름 바꾸기 · ✕ 지우기 (그 노트들은 카테고리 없이 남아요)</p>
+  <div id="noteCatManage"></div>
+  <div class="dialog-actions"><span class="spacer"></span><button type="button" class="btn primary" id="noteCatsClose">닫기</button></div>
+</dialog>
+
 <dialog id="lineEditor">
   <form id="lineForm">
     <input name="name" class="title-input" placeholder="항목 이름" required autocomplete="off">
     <div class="row"><label>구분</label><select name="kind"></select></div>
     <div class="row"><label>통장</label><select name="account" id="lineAccount"></select></div>
-    <label class="check-row"><input type="checkbox" name="fixed"> 매달 같은 금액 <span class="hint">실제를 안 적어도 계획 금액으로 쳐요 (월세·통신비·월급 등)</span></label>
+    <label class="check-row"><input type="checkbox" name="fixed"> 매달 같은 금액 <span class="hint">실제를 안 적어도 계획 금액으로 쳐요 (월세·통신비·월급 등). 금액이 바뀌면 바뀐 달에서 계획을 고치면 그달부터 새 금액 (지난달은 그대로)</span></label>
     <label class="check-row"><input type="checkbox" name="last"> <span id="lineLastLabel"></span> <span class="hint">다음 달부터 안 보여요 (경조사비처럼 한 번만)</span></label>
     <div class="dialog-actions">
       <button type="button" class="btn danger" id="lineDelBtn">삭제</button>
@@ -335,10 +342,13 @@
   </div>
   <div class="row wide"><label>글씨 크기</label><input type="range" min="13" max="20" id="fontRange"><span class="val" id="fontVal"></span></div>
 
-  <h2>노트 카테고리</h2>
-  <div id="noteCatManage"></div>
+  <h2>노트</h2>
+  <div class="row">
+    <button class="btn" id="noteCatsBtn">카테고리 편집</button>
+    <span class="hint">노트 카테고리 이름·색·순서 바꾸기, 추가·지우기</span>
+  </div>
 
-  <h2>메뉴</h2>
+  <h2>식단</h2>
   <div class="row">
     <button class="btn" id="presetBtn">기본 메뉴 넣기</button>
     <span class="hint">메뉴·레시피에 기본 메뉴를 추가해요. 이미 있는 이름은 건너뛰어요.</span>
