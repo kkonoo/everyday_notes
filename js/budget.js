@@ -159,8 +159,14 @@ function sumRow(cls, side, name, s) {
   return row;
 }
 
-// 분류 접기·펼치기: 제목을 누르면 (기기별 prefs.bfold, 미분류는 'none'). 접어도 합계는 보임
-const folded = g => !!(prefs.bfold || {})[g ? g.id : 'none'];
+// 분류 접기·펼치기: 제목을 누르면. 처음엔 접힘, 펼친 분류만 기기별로 기억 (prefs.bopen, 미분류는 'none'). 접어도 합계는 보임
+const folded = g => !(prefs.bopen || {})[g ? g.id : 'none'];
+function setOpen(g, open) {
+  const o = { ...prefs.bopen }, k = g ? g.id : 'none';
+  if (open) o[k] = true; else delete o[k];
+  prefs.bopen = o;
+  savePrefs();
+}
 function groupHead(g, ls) {
   const row = sumRow('bgroup', 'out', g ? g.name : '미분류', sums(ls, bm));
   row.dataset.group = g ? g.id : '';
@@ -169,10 +175,7 @@ function groupHead(g, ls) {
   row.firstChild.prepend(h('span', 'fold', '▾'));
   row.addEventListener('click', e => {
     if (e.target.closest('.handle, button')) return;
-    const f = { ...prefs.bfold }, k = g ? g.id : 'none';
-    if (f[k]) delete f[k]; else f[k] = true;
-    prefs.bfold = f;
-    savePrefs();
+    setOpen(g, folded(g));
     render();
   });
   if (!g) return row;
@@ -198,6 +201,7 @@ function addOutGroup() {
   const c = confRec(), g = { id: uid(), name };
   c.groups = [...c.groups, g];
   touch(c);
+  setOpen(g, true); // 새 분류는 펼쳐서 바로 항목을 적게
   focusNext = `badd:out:${g.id}`;
   save();
 }

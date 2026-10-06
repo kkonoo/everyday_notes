@@ -339,8 +339,9 @@ function listBody(n) {
 }
 
 function section(n, s, list, mode) {
+  // 묶음은 처음엔 접힘. 펼친 묶음만 기기별로 기억 (prefs.secOpen). 편집 중엔 모두 펼침
   const sid = s ? s.id : null, foldKey = sid || `none:${n.id}`;
-  const folded = mode !== 'edit' && !!(prefs.fold || {})[foldKey];
+  const folded = mode !== 'edit' && !(prefs.secOpen || {})[foldKey];
   const box = h('div', 'sec' + (folded ? ' folded' : ''));
   box.dataset.sec = sid || '';
   if (s || n.sections.length) {
@@ -374,9 +375,9 @@ function section(n, s, list, mode) {
       if (mode !== 'edit') {
         head.title = folded ? '펼치기' : '접기';
         head.addEventListener('click', () => {
-          const f = { ...prefs.fold };
-          if (folded) delete f[foldKey]; else f[foldKey] = true;
-          prefs.fold = f;
+          const o = { ...prefs.secOpen };
+          if (folded) o[foldKey] = true; else delete o[foldKey];
+          prefs.secOpen = o;
           savePrefs();
           render();
         });
