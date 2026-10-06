@@ -340,11 +340,12 @@ function listBody(n) {
 
 function section(n, s, list, mode) {
   // 묶음은 처음엔 접힘. 펼친 묶음만 기기별로 기억 (prefs.secOpen). 편집 중엔 모두 펼침
-  const sid = s ? s.id : null, foldKey = sid || `none:${n.id}`;
-  const folded = mode !== 'edit' && !(prefs.secOpen || {})[foldKey];
+  // 묶음이 없는 노트는 제목 줄이 없어서 접을 수 없음 → 항상 펼침
+  const sid = s ? s.id : null, foldKey = sid || `none:${n.id}`, hasHead = !!(s || n.sections.length);
+  const folded = hasHead && mode !== 'edit' && !(prefs.secOpen || {})[foldKey];
   const box = h('div', 'sec' + (folded ? ' folded' : ''));
   box.dataset.sec = sid || '';
-  if (s || n.sections.length) {
+  if (hasHead) {
     const head = h('div', 'sec-head');
     head.dataset.sec = sid || '';
     if (mode === 'edit' && s) {
