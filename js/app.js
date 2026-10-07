@@ -220,8 +220,8 @@ function dragHandle() {
   return s;
 }
 
-// ---------- 식단·가계부: 오른쪽 패널 너비 ----------
-// 사이 경계(.splitter)를 끌어서 조절, 두 번 누르면 원래대로. prefs.sideW = { meals, budget } (캘린더x플래너와 같은 방식)
+// ---------- 패널 너비: 노트는 왼쪽 목록, 식단·가계부는 오른쪽 패널 ----------
+// 사이 경계(.splitter)를 끌어서 조절, 두 번 누르면 원래대로. prefs.sideW = { notes, meals, budget } (캘린더x플래너와 같은 방식)
 function applySideW() {
   for (const s of document.querySelectorAll('.splitter')) {
     const w = (prefs.sideW || {})[s.dataset.split];
@@ -236,9 +236,10 @@ for (const s of document.querySelectorAll('.splitter')) {
     s.setPointerCapture(e.pointerId);
     s.classList.add('active');
     const move = ev => {
-      const box = s.parentElement.getBoundingClientRect(), right = box.right - 24; // 오른쪽 여백
-      const max = Math.max(300, (right - box.left - 24) * 0.6);
-      prefs.sideW = { ...prefs.sideW, [key]: Math.round(Math.min(Math.max(right - ev.clientX - 8, 260), max)) };
+      const box = s.parentElement.getBoundingClientRect(), left = box.left + 24, right = box.right - 24; // 양쪽 여백
+      const max = Math.max(300, (right - left) * 0.6);
+      const w = key === 'notes' ? ev.clientX - left - 8 : right - ev.clientX - 8;
+      prefs.sideW = { ...prefs.sideW, [key]: Math.round(Math.min(Math.max(w, key === 'notes' ? 160 : 260), max)) };
       applySideW();
     };
     const up = () => {
