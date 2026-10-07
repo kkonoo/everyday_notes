@@ -418,14 +418,14 @@ function syncMenuLink() {
   $('menuLinkOpen').hidden = !/^https?:\/\//.test(v);
   $('menuLinkOpen').href = v;
 }
-// 분류 칸 자동완성: 정해 둔 것 + 메뉴에 적힌 것. 분류는 고른 종류의 것, 하위분류는 고른 분류의 것
-// 칸을 누르면 전부, 적으면 그 글자가 든 것만. datalist는 폰(안드로이드 크롬)의 편집 창 안에서 목록이 떠도 골라지지 않아서 직접 그림
+// 분류 칸 자동완성: 지금 있는 그룹 (메뉴가 있거나 직접 만든 것 — 메뉴 목록과 같음). 분류는 고른 종류 안, 하위분류는 고른 종류 › 분류 안.
+// 그 그룹에 메뉴가 하나도 없으면 정해 둔 것 (처음 쓸 때·새 종류). 칸을 누르면 전부, 적으면 그 글자가 든 것만.
+// datalist는 폰(안드로이드 크롬)의 편집 창 안에서 목록이 떠도 골라지지 않아서 직접 그림
 function catChoices(f) {
-  const all = menus(), cuisine = menuForm.cuisine.value.trim(), course = menuForm.course.value.trim();
-  const uniq = (values, order) => [...new Set(values.filter(Boolean))].sort(order);
-  if (f === 'cuisine') return uniq([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES));
-  if (f === 'course') return uniq([...courseOrder(cuisine), ...all.filter(x => x.cuisine === cuisine).map(x => x.course)], abc);
-  return uniq([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)], abc);
+  const cuisine = menuForm.cuisine.value.trim(), course = menuForm.course.value.trim();
+  const p = f === 'cuisine' ? [] : f === 'course' ? [cuisine] : [cuisine, course];
+  const have = childrenOf(p);
+  return have.length || menusIn(p).length ? have : f === 'cuisine' ? CUISINES : f === 'course' ? courseOrder(cuisine) : subOrder(course);
 }
 for (const f of LEVELS) {
   const input = menuForm[f], box = input.nextElementSibling;
