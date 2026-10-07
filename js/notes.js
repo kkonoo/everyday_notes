@@ -94,11 +94,12 @@ function noteRow(n, on) {
   const row = h('div', 'note-row' + (on ? ' on' : ''));
   row.dataset.id = n.id;
   row.style.setProperty('--c', noteColor(n));
-  const handle = dragHandle();
-  row.append(handle, h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)));
+  const handle = dragHandle(), tools = h('span', 'note-tools');
+  tools.append(iconBtn('✕', '노트 삭제', () => deleteNote(n)));
+  row.append(handle, h('span', 'note-name', n.title || '제목 없음'), h('span', 'count', noteCount(n)), tools);
   row.addEventListener('click', e => { if (!e.target.closest('.handle')) openNote(n); });
   // 다른 카테고리의 노트 위에 놓으면 그 카테고리로, 카테고리 제목에 놓으면 그 카테고리 맨 위로
-  sortable(handle, row, '.note-row, .note-cat', (t, before) => {
+  const drop = (t, before) => {
     const catId = x => (noteCatOf(x) || {}).id || null;
     let target = notes().find(x => x.id === t.dataset.id), cat = target && catId(target);
     if (!target) {
@@ -109,6 +110,18 @@ function noteRow(n, on) {
     if (catId(n) !== cat) { n.cat = cat; touch(n); }
     if (target) reorder(notes(), n, target, before);
     save();
+  };
+  sortable(handle, row, '.note-row, .note-cat', drop);
+  // PC는 마우스를 올리면 개수 자리에 ✕. 폰은 길게 누르면 ✕ (다른 데를 누르면 닫힘), 손을 떼지 않고 끌면 옮기기
+  longPress(row, start => {
+    row.classList.add('show-tools');
+    const close = ev => {
+      if (row.contains(ev.target)) return;
+      row.classList.remove('show-tools');
+      removeEventListener('pointerdown', close, true);
+    };
+    addEventListener('pointerdown', close, true);
+    dragRow(row, '.note-row, .note-cat', drop, start);
   });
   return row;
 }

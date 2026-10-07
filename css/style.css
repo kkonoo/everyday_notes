@@ -180,6 +180,13 @@ body[data-view="budget"] .budget-view { display: grid; grid-template-columns: mi
 .note-row.on { background: var(--surface); font-weight: 700; box-shadow: inset 3px 0 0 var(--c), var(--shadow); }
 .note-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .note-row .count { font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+/* 노트 ✕: PC는 마우스를 올리면, 폰은 길게 누르면 (notes.js longPress) 개수 자리에 */
+.note-tools { display: none; margin: -4px -6px -4px 0; }
+@media (hover: hover) and (pointer: fine) { .note-row:hover .count { display: none; } .note-row:hover .note-tools { display: flex; } }
+.note-row.show-tools { background: var(--surface-2); }
+.note-row.show-tools .count { display: none; }
+.note-row.show-tools .note-tools { display: flex; }
+.note-row { -webkit-touch-callout: none; }
 /* 노트 카테고리: 목록의 묶음 제목, 설정의 색 점·고르기 */
 .note-cat { display: flex; align-items: center; gap: 6px; margin: 12px 0 4px; padding: 3px 4px 3px 8px; border-radius: 9px; background: color-mix(in srgb, var(--c) 24%, transparent); font-size: 13px; font-weight: 700; cursor: pointer; }
 .note-cat .name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
