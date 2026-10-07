@@ -13,6 +13,12 @@ const NOTE_COLORS = ['#F2A7A0', '#A8C8F0', '#C3B1E1', '#F5B97A', '#E8A9C9', '#B5
 const noteCats = () => recs('notecat').sort(byOrder);
 const noteCatOf = n => noteCats().find(c => c.id === n.cat) || null;
 const noteColor = n => (noteCatOf(n) || TYPES[n.type]).color;
+function setCatOpen(id, open) {
+  const o = { ...prefs.catOpen };
+  if (open) o[id] = true; else delete o[id];
+  prefs.catOpen = o;
+  savePrefs();
+}
 function addNoteCat() { // 저장은 부르는 쪽에서
   const name = (prompt('새 카테고리 이름') || '').trim();
   if (!name) return null;
@@ -61,12 +67,17 @@ function renderNotes() {
   document.body.dataset.page = phone() && notePage && cur ? 'note' : 'list';
   // 카테고리 없는 노트가 위, 그 아래 카테고리별로 (빈 카테고리도 제목은 보여줌: 끌어 놓을 곳)
   const out = list.filter(n => !noteCatOf(n)).map(n => noteRow(n, n === cur));
+  // 카테고리 제목을 누르면 접기·펼치기. 처음엔 접힘, 펼친 카테고리만 기기별로 기억 (prefs.catOpen)
   for (const c of noteCats()) {
-    const head = h('div', 'note-cat');
-    head.append(h('span', 'name', c.name), iconBtn('＋', `‘${c.name}’에 새 노트`, () => openNewNote(c)));
+    const inCat = list.filter(n => n.cat === c.id), folded = !(prefs.catOpen || {})[c.id];
+    const head = h('div', 'note-cat' + (folded ? ' folded' : ''));
+    head.append(h('span', 'fold', '▾'), h('span', 'name', c.name), h('span', 'count', inCat.length || ''),
+      iconBtn('＋', `‘${c.name}’에 새 노트`, () => openNewNote(c)));
     head.style.setProperty('--c', c.color); // 제목 음영 = 카테고리 색
     head.dataset.cat = c.id;
-    out.push(head, ...list.filter(n => n.cat === c.id).map(n => noteRow(n, n === cur)));
+    head.title = folded ? '펼치기' : '접기';
+    head.addEventListener('click', () => { setCatOpen(c.id, folded); render(); });
+    out.push(head, ...(folded ? [] : inCat.map(n => noteRow(n, n === cur))));
   }
   $('noteList').replaceChildren(...(list.length ? out : [h('p', 'hint', '‘+ 새 노트’로 장보기·체크리스트·메모를 만들어요.')]));
   renderNote(cur);
@@ -195,6 +206,7 @@ function editBar(n) {
     const c = cs.value === '+' ? addNoteCat() : noteCats().find(x => x.id === cs.value) || null;
     if (cs.value === '+' && !c) { cs.value = (noteCatOf(n) || {}).id || ''; return; }
     n.cat = c ? c.id : null;
+    if (c) setCatOpen(c.id, true); // 옮긴 노트가 목록에서 안 보이지 않게
     touch(n);
     save();
   });
@@ -604,6 +616,7 @@ $('newNoteForm').addEventListener('submit', e => {
   db.recs.push(n);
   prefs.note = n.id;
   if (n.type === 'shop') prefs.tab = { ...prefs.tab, [n.id]: 'all' }; // 처음엔 늘 사는 것 목록부터
+  if (n.cat) setCatOpen(n.cat, true);
   savePrefs();
   editing = false;
   notePage = true;
