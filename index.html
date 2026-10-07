@@ -157,12 +157,9 @@
     <input name="name" class="title-input" placeholder="메뉴 이름" required autocomplete="off">
     <label class="field-label">분류</label>
     <div class="row">
-      <input name="cuisine" class="text-input third" placeholder="종류 (한식)" list="menuCuisineList" autocomplete="off">
-      <input name="course" class="text-input third" placeholder="분류 (국)" list="menuCourseList" autocomplete="off">
-      <input name="sub" class="text-input third" placeholder="하위 (찌개)" list="menuSubList" autocomplete="off">
-      <datalist id="menuCuisineList"></datalist>
-      <datalist id="menuCourseList"></datalist>
-      <datalist id="menuSubList"></datalist>
+      <div class="suggest-wrap"><input name="cuisine" class="text-input third" placeholder="종류 (한식)" autocomplete="off"><div class="suggest" hidden></div></div>
+      <div class="suggest-wrap"><input name="course" class="text-input third" placeholder="분류 (국)" autocomplete="off"><div class="suggest" hidden></div></div>
+      <div class="suggest-wrap"><input name="sub" class="text-input third" placeholder="하위 (찌개)" autocomplete="off"><div class="suggest" hidden></div></div>
     </div>
     <label class="field-label">태그 <span class="hint">눌러서 붙이기·떼기 (예: 계절 메뉴, 손님초대)</span></label>
     <div class="pills tag-pills" id="menuTagPills"><input id="menuTagInput" class="tag-input" placeholder="새 태그" autocomplete="off"></div>

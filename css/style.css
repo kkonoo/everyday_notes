@@ -638,7 +638,7 @@ textarea:focus { border-color: var(--accent); }
   outline: none;
 }
 .text-input:focus { border-color: var(--accent); }
-.text-input.third { flex-basis: 70px; }
+.text-input.third { width: 100%; } /* 메뉴 편집 창 분류 칸 (자동완성 목록과 같이 .suggest-wrap 안) */
 .pill-link {
   padding: 4px 10px;
   border: 1px solid var(--line);

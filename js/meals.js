@@ -419,18 +419,24 @@ function syncMenuLink() {
   $('menuLinkOpen').href = v;
 }
 // 분류 칸 자동완성: 정해 둔 것 + 메뉴에 적힌 것. 분류는 고른 종류의 것, 하위분류는 고른 분류의 것
-function fillCatLists() {
+// 칸을 누르면 전부, 적으면 그 글자가 든 것만. datalist는 폰(안드로이드 크롬)의 편집 창 안에서 목록이 떠도 골라지지 않아서 직접 그림
+function catChoices(f) {
   const all = menus(), cuisine = menuForm.cuisine.value.trim(), course = menuForm.course.value.trim();
-  const options = (values, order) => [...new Set(values.filter(Boolean))].sort(order).map(v => {
-    const o = h('option');
-    o.value = v;
-    return o;
-  });
-  $('menuCuisineList').replaceChildren(...options([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES)));
-  $('menuCourseList').replaceChildren(...options([...courseOrder(cuisine), ...all.filter(x => x.cuisine === cuisine).map(x => x.course)],
-    abc));
-  $('menuSubList').replaceChildren(...options([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)],
-    abc));
+  const uniq = (values, order) => [...new Set(values.filter(Boolean))].sort(order);
+  if (f === 'cuisine') return uniq([...CUISINES, ...all.map(x => x.cuisine)], ranker(CUISINES));
+  if (f === 'course') return uniq([...courseOrder(cuisine), ...all.filter(x => x.cuisine === cuisine).map(x => x.course)], abc);
+  return uniq([...subOrder(course), ...all.filter(x => x.course === course).map(x => x.sub)], abc);
+}
+for (const f of LEVELS) {
+  const input = menuForm[f], box = input.nextElementSibling;
+  const show = q => {
+    const hits = catChoices(f).filter(v => norm(v).includes(q));
+    box.replaceChildren(...hits.map(v => suggestBtn(v, () => { input.value = v; box.hidden = true; })));
+    box.hidden = !hits.length;
+  };
+  input.addEventListener('focus', () => show(''));
+  input.addEventListener('input', () => show(norm(input.value)));
+  input.addEventListener('blur', () => { box.hidden = true; });
 }
 // 태그 고르는 목록 = 정해 둔 것(TAG_PRESETS, 설정에서 지운 것은 빼고) + 메뉴에 붙은 것
 // 지운 기본 태그는 계정에 저장 (id 고정 rec 하나라 기기끼리 겹치지 않음)
@@ -468,7 +474,6 @@ function openMenu(menu, meal) {
   menuForm.cuisine.value = menu.cuisine || '';
   menuForm.course.value = menu.course || '';
   menuForm.sub.value = menu.sub || '';
-  fillCatLists();
   editTags = [...tagsOf(menu)];
   tagInput.value = '';
   renderTagPills();
@@ -481,8 +486,6 @@ function openMenu(menu, meal) {
   if (!menu.name) menuForm.name.focus();
 }
 menuForm.link.addEventListener('input', syncMenuLink);
-menuForm.cuisine.addEventListener('input', fillCatLists);
-menuForm.course.addEventListener('input', fillCatLists);
 menuForm.addEventListener('submit', e => {
   e.preventDefault();
   const m = editingMenu;
