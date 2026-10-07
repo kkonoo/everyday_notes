@@ -43,7 +43,7 @@ const dbReady = new Promise((ok, fail) => {
   const legacy = readJSON(KEY);
   db = (saved && JSON.parse(saved)) || legacy || db;
   dbLoaded = true;
-  if (idb && !saved && legacy) persist().then(() => localStorage.removeItem(KEY));
+  if (idb && legacy) (saved ? Promise.resolve() : persist()).then(() => localStorage.removeItem(KEY)); // 이미 옮겼으면 남은 키만 지움
 });
 let prefs = readJSON(PKEY) || {}; // 기기별 설정 (동기화 안 함)
 const savePrefs = () => localStorage.setItem(PKEY, JSON.stringify(prefs));

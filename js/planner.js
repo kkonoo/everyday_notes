@@ -6,15 +6,17 @@
 //  - 직접 고르기: 적은 메뉴를 고른 요일마다 (예: 아침 요거트)
 // 이미 그 끼니에 같은 메뉴가 있으면 건너뜀. meals.js 의 menus, pushMeal, mealsOn 등을 그대로 사용
 
-// 추천 칸마다 고르는 곳: 한식(종류가 비어 있어도)의 분류 › 하위분류.
-// home이 있으면 그 기본 그룹이 지금 있는 종류 전부 (예: 간식·디저트를 디저트로 바꿨으면 디저트)
+// 추천 칸마다 고르는 곳: 기본 그룹(종류 › 분류 › 하위분류)들이 지금 있는 곳 (종류가 빈 메뉴는 한식으로).
+// 그룹 이름을 바꾸거나 옮겨도 따라감 (예: 한식 › 밥·면을 탄수로 바꿨으면 한식 › 탄수 › 밥, 간식·디저트를 디저트로 바꿨으면 디저트)
+const hansik = (course, subs) => subs.map(s => ['한식', course, s]);
 const PARTS = [
-  { key: 'rice', label: '밥', course: '밥·면', subs: ['밥'] },
-  { key: 'soup', label: '국', course: '국', subs: ['국', '찌개'] },
-  { key: 'side', label: '반찬', course: '반찬', subs: ['볶음', '무침', '나물', '기타'] },
-  { key: 'main', label: '메인', course: '메인', subs: ['구이', '볶음', '찜', '조림'] },
-  { key: 'dessert', label: '간식·디저트', home: ['간식·디저트'] },
+  { key: 'rice', label: '밥', homes: hansik('밥·면', ['밥']) },
+  { key: 'soup', label: '국', homes: hansik('국', ['국', '찌개']) },
+  { key: 'side', label: '반찬', homes: hansik('반찬', ['볶음', '무침', '나물', '기타']) },
+  { key: 'main', label: '메인', homes: hansik('메인', ['구이', '볶음', '찜', '조림']) },
+  { key: 'dessert', label: '간식·디저트', homes: [['간식·디저트']] },
 ];
+let partHomes = {}; // 칸 → 지금 그룹들 (뽑을 때마다 찾으면 느려서 rollAll에서 한 번)
 // 테마 추천 칸: 고른 태그가 붙은 메뉴 아무거나
 const THEME = { key: 'theme', label: '테마' };
 const multi = p => p.key === 'side' || p === THEME; // 하루에 여러 개 뽑는 칸 (3개까지 뽑아 두고 보이는 개수만 씀)
@@ -52,7 +54,10 @@ function seasonal(x) {
 }
 
 // ---------- 뽑기 ----------
-const inPart = (p, x) => (x.cuisine || '한식') === '한식' && x.course === p.course && p.subs.includes(x.sub || '');
+const inPart = (p, x) => {
+  const xp = [x.cuisine || '한식', ...pathOf(x).slice(1)];
+  return partHomes[p.key].some(q => startsWith(xp, q));
+};
 const usedIn = key => picks.flatMap(d => [].concat(d[key])).filter(Boolean);
 const shuffle = a => {
   for (let i = a.length - 1; i > 0; i--) {
@@ -63,8 +68,8 @@ const shuffle = a => {
 };
 // 이번 주에 안 쓴 것 중에서 (다 썼으면 아무거나), 제철 우선이면 제철인 것 먼저 (랜덤 추천만). avoid는 빼고
 function draw(p, avoid) {
-  const tag = p === THEME ? themeOf(plan()) : null, home = p.home ? presetHome(p.home) || p.home : null;
-  const ok = p === THEME ? x => !!tag && tagsOf(x).includes(tag) : home ? x => startsWith(pathOf(x), home) : x => inPart(p, x);
+  const tag = p === THEME ? themeOf(plan()) : null;
+  const ok = p === THEME ? x => !!tag && tagsOf(x).includes(tag) : x => inPart(p, x);
   const all = menus().filter(x => ok(x) && !avoid.includes(x)), used = usedIn(p.key);
   let c = all.filter(x => !used.includes(x));
   if (!c.length) c = all;
@@ -75,6 +80,7 @@ function draw(p, avoid) {
   return c.length ? c[Math.floor(Math.random() * c.length)] : null;
 }
 function rollAll() {
+  partHomes = Object.fromEntries(PARTS.map(p => [p.key, p.homes.map(q => presetHome(q) || q)]));
   picks = Array.from({ length: 7 }, () => ({ rice: null, soup: null, side: [null, null, null], main: null, dessert: null, theme: [null, null, null] }));
   // 켠 요일 먼저, 순서는 섞어서 뽑기 (제철 메뉴가 앞 요일이나 끈 요일에 몰리지 않게)
   const days = [0, 1, 2, 3, 4, 5, 6];
