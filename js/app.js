@@ -31,10 +31,33 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 // 같은 주소(kkonoo.github.io)의 캘린더x플래너와 localStorage를 같이 쓰므로 키 이름을 다르게
 const KEY = 'everyday.v1', PKEY = 'everyday.prefs';
 const readJSON = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-let db = readJSON(KEY) || { version: 1, recs: [] };
+// 데이터는 IndexedDB 'everyday-notes'에 (localStorage는 사이트 주소당 약 5MB이고 플래너와 나눠 씀. 플래너는 'calendar-planner').
+// 예전 localStorage 값은 처음 한 번 옮기고 지움. IndexedDB를 못 쓰는 브라우저면 localStorage 그대로
+let db = { version: 1, recs: [] }, idb = null, dbLoaded = false;
+const idbReq = (r, ok, fail) => { r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error); };
+const dbReady = new Promise((ok, fail) => {
+  const r = indexedDB.open('everyday-notes', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('kv');
+  idbReq(r, d => idbReq(d.transaction('kv').objectStore('kv').get(KEY), v => { idb = d; ok(v); }, fail), fail);
+}).catch(() => null).then(saved => {
+  const legacy = readJSON(KEY);
+  db = (saved && JSON.parse(saved)) || legacy || db;
+  dbLoaded = true;
+  if (idb && !saved && legacy) persist().then(() => localStorage.removeItem(KEY));
+});
 let prefs = readJSON(PKEY) || {}; // 기기별 설정 (동기화 안 함)
 const savePrefs = () => localStorage.setItem(PKEY, JSON.stringify(prefs));
-const persist = () => localStorage.setItem(KEY, JSON.stringify(db));
+const persist = () => {
+  if (!dbLoaded) return Promise.resolve(); // 다 읽기 전의 빈 값으로 덮어쓰지 않게
+  const s = JSON.stringify(db);
+  if (!idb) return Promise.resolve(localStorage.setItem(KEY, s));
+  return new Promise((ok, fail) => {
+    const t = idb.transaction('kv', 'readwrite');
+    t.objectStore('kv').put(s, KEY);
+    t.oncomplete = ok;
+    t.onerror = t.onabort = () => fail(t.error);
+  });
+};
 // 변경 저장 → 다시 그리기 → (로그인돼 있으면) sync.js가 계정에 올림
 function save() { persist(); render(); if (window.onSave) window.onSave(); }
 
@@ -384,7 +407,7 @@ addEventListener('resize', () => {
 applyTheme();
 applyFont();
 applySideW();
-addEventListener('DOMContentLoaded', render); // notes.js·meals.js 까지 읽은 뒤 그리기
+addEventListener('DOMContentLoaded', () => dbReady.then(render)); // notes.js·meals.js 까지 읽고, 저장된 데이터도 읽은 뒤 그리기
 
 // 앱 설치(PWA)·오프라인용. 파일을 더블클릭해서 연 경우(file://)엔 동작 안 함
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');

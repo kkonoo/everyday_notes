@@ -630,7 +630,7 @@ function upgradeMenus() {
   }
   return n;
 }
-if (upgradeMenus()) persist();
+dbReady.then(() => { if (upgradeMenus()) persist(); }); // 저장된 데이터를 다 읽은 뒤에
 
 // 설정 > 기본 메뉴 넣기. 이름이 같은 메뉴와 지운 메뉴는 건너뛰고, 있는 메뉴에 분류가 없으면 분류만 채움
 // 넣는 그룹은 같은 기본 그룹 메뉴들이 지금 있는 곳 (예: 간식·디저트를 디저트로 바꿨으면 디저트 › 떡)
