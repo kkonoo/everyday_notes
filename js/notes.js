@@ -9,7 +9,11 @@ const TYPES = {
   list: { name: '목록', color: '#A8C8F0' },
 };
 // 내 카테고리: 종류와 따로 노트에 붙이는 묶음 { name, color, order }. 노트 색 = 카테고리 색, 없으면 종류 색 (목록 점·체크 칸)
-const NOTE_COLORS = ['#F2A7A0', '#A8C8F0', '#C3B1E1', '#F5B97A', '#E8A9C9', '#B5D99C', '#D9B99B', '#7FCFB8', '#F5D27A', '#C7C1B8'];
+// 팔레트 = 캘린더x플래너 카테고리와 같은 16색 (＋로 직접 고르기도)
+const NOTE_COLORS = [
+  '#F4978E', '#F8B88B', '#F5D27A', '#C5D98F', '#9FCB8E', '#7FCFB8', '#84CDE0', '#8DB6F2',
+  '#A7A3F2', '#B99AF0', '#DDA0E5', '#F3A6C8', '#D2AE8E', '#A88B73', '#9AA5B1', '#C7C1B8',
+];
 const noteCats = () => recs('notecat').sort(byOrder);
 const noteCatOf = n => noteCats().find(c => c.id === n.cat) || null;
 const noteColor = n => (noteCatOf(n) || TYPES[n.type]).color;
@@ -276,8 +280,15 @@ function renderNoteCats() {
     }));
     out.push(row);
     if (pickingCat === c.id) {
-      const pal = h('div', 'palette');
-      pal.append(...NOTE_COLORS.map(col => dot(col, () => { c.color = col; touch(c); pickingCat = null; save(); renderNoteCats(); }, col === c.color)));
+      const pal = h('div', 'palette'), pick = col => { c.color = col; touch(c); pickingCat = null; save(); renderNoteCats(); };
+      pal.append(...NOTE_COLORS.map(col => dot(col, () => pick(col), col.toLowerCase() === c.color.toLowerCase())));
+      const custom = h('label', 'cat-dot custom', '+'), input = h('input');
+      custom.title = '직접 고르기';
+      input.type = 'color';
+      input.value = c.color;
+      input.addEventListener('change', () => pick(input.value));
+      custom.append(input);
+      pal.append(custom);
       out.push(pal);
     }
   }
