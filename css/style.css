@@ -862,7 +862,11 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   body[data-page="note"] .note-nav, body[data-page="list"] .note { display: none; }
   body[data-view="notes"][data-page="note"] #backBtn { display: inline-block; }
   .note-nav { flex: 1; width: auto; gap: 6px; }
-  .note-row { padding: 14px 12px 14px 2px; border: 1px solid var(--line); background: var(--surface); font-size: 16px; }
+  .note-row { padding: 12px 12px 12px 2px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; }
+  /* 카테고리 제목이 노트 카드보다 작아 보이지 않게: 글씨·높이를 키움 */
+  .note-cat { margin-top: 16px; padding: 11px 6px 11px 12px; font-size: 17px; }
+  .note-cat .fold { font-size: 13px; }
+  .note-cat .count { font-size: 14px; }
   .note-row.on { font-weight: 400; box-shadow: none; }
   .note-row .handle { visibility: visible; padding: 4px 8px; }
   .note { overflow: visible; }
