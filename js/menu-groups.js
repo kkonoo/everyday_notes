@@ -69,12 +69,12 @@ function promoteGroup(p) {
   renderGroups();
   toast(`‘${name}’ → 종류`);
 }
-function renameGroup(p) {
-  const old = p[p.length - 1], name = (prompt(`${LEVEL_NAMES[p.length - 1]} 이름`, old) || '').trim();
+async function renameGroup(p) {
+  const old = p[p.length - 1], name = await ask(`${LEVEL_NAMES[p.length - 1]} 이름`, old);
   if (name && name !== old) moveGroup(p, [...p.slice(0, -1), name]);
 }
-function addGroup(p) {
-  const L = p.length, name = (prompt(`새 ${LEVEL_NAMES[L]} 이름`) || '').trim();
+async function addGroup(p) {
+  const L = p.length, name = await ask(`새 ${LEVEL_NAMES[L]} 이름`);
   if (!name) return;
   const q = [...p, name];
   if (!childrenOf(p).includes(name)) { setExtraGroups([...extraGroups(), q]); save(); }

@@ -19,8 +19,8 @@ function setCatOpen(id, open) {
   prefs.catOpen = o;
   savePrefs();
 }
-function addNoteCat() { // 저장은 부르는 쪽에서
-  const name = (prompt('새 카테고리 이름') || '').trim();
+async function addNoteCat() { // 저장은 부르는 쪽에서
+  const name = await ask('새 카테고리 이름');
   if (!name) return null;
   const cats = noteCats(), used = cats.map(c => c.color);
   const c = newRec('notecat', { name, color: NOTE_COLORS.find(x => !used.includes(x)) || NOTE_COLORS[0], order: nextOrder(cats) });
@@ -215,8 +215,8 @@ function editBar(n) {
   }
   cs.value = (noteCatOf(n) || {}).id || '';
   cs.title = '카테고리 (설정 › 노트 › 카테고리 편집에서 이름·색 바꾸기)';
-  cs.addEventListener('change', () => {
-    const c = cs.value === '+' ? addNoteCat() : noteCats().find(x => x.id === cs.value) || null;
+  cs.addEventListener('change', async () => {
+    const c = cs.value === '+' ? await addNoteCat() : noteCats().find(x => x.id === cs.value) || null;
     if (cs.value === '+' && !c) { cs.value = (noteCatOf(n) || {}).id || ''; return; }
     n.cat = c ? c.id : null;
     if (c) setCatOpen(c.id, true); // 옮긴 노트가 목록에서 안 보이지 않게
@@ -260,8 +260,8 @@ function renderNoteCats() {
     });
     const d = dot(c.color, () => { pickingCat = pickingCat === c.id ? null : c.id; renderNoteCats(); }, pickingCat === c.id);
     d.title = '색 바꾸기';
-    row.append(handle, d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', () => {
-      const name = (prompt('카테고리 이름', c.name) || '').trim();
+    row.append(handle, d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', async () => {
+      const name = await ask('카테고리 이름', c.name);
       if (!name || name === c.name) return;
       c.name = name;
       touch(c);
@@ -282,7 +282,7 @@ function renderNoteCats() {
     }
   }
   if (!out.length) out.push(h('p', 'hint', '카테고리를 만들어 노트에 붙이면 (노트 › 편집) 목록이 카테고리별로 묶이고 그 색이 돼요.'));
-  out.push(button('+ 카테고리', () => { if (addNoteCat()) { save(); renderNoteCats(); } }));
+  out.push(button('+ 카테고리', async () => { if (await addNoteCat()) { save(); renderNoteCats(); } }));
   $('noteCatManage').replaceChildren(...out);
 }
 // 설정 › 노트 › 카테고리 편집 (따로 여는 창)

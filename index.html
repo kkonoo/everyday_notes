@@ -135,6 +135,19 @@
   </aside>
 </main>
 
+<!-- 이름 적기 창 (prompt() 대신, Enter = 확인). 다른 창 위에도 뜨니 맨 앞에 둠: 폰 뒤로 가기는 처음 찾은 열린 창을 닫음 -->
+<dialog id="ask">
+  <form id="askForm">
+    <h2 id="askLabel"></h2>
+    <input id="askInput" class="title-input" autocomplete="off">
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="askCancel">취소</button>
+      <button class="btn primary">확인</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="newNote">
   <form id="newNoteForm">
     <input name="title" class="title-input" placeholder="노트 이름" required autocomplete="off">
