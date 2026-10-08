@@ -9,8 +9,16 @@ const TYPES = {
   list: { name: '목록', color: '#A8C8F0' },
 };
 // 내 카테고리: 종류와 따로 노트에 붙이는 묶음 { name, color, order }. 노트 색 = 카테고리 색, 없으면 종류 색 (목록 점·체크 칸)
-// 팔레트 = 캘린더x플래너 카테고리 색에서 10개 (＋로 직접 고르기도)
+// 기본 팔레트 = 캘린더x플래너 카테고리 색에서 10개. ＋로 고른 색은 끝에 더하고, 길게 누르면 지움 → 계정에 저장 (id 고정 rec 하나)
 const NOTE_COLORS = ['#F4978E', '#F8B88B', '#F5D27A', '#9FCB8E', '#7FCFB8', '#84CDE0', '#8DB6F2', '#B99AF0', '#F3A6C8', '#C7C1B8'];
+const PALETTE_ID = 'note-colors';
+const notePalette = () => (recs('palette').find(r => r.id === PALETTE_ID) || {}).colors || NOTE_COLORS;
+function setNotePalette(colors) { // 저장은 부르는 쪽에서
+  let r = db.recs.find(x => x.id === PALETTE_ID);
+  if (!r) { r = { ...newRec('palette', {}), id: PALETTE_ID }; db.recs.push(r); }
+  r.colors = colors;
+  touch(r);
+}
 const noteCats = () => recs('notecat').sort(byOrder);
 const noteCatOf = n => noteCats().find(c => c.id === n.cat) || null;
 const noteColor = n => (noteCatOf(n) || TYPES[n.type]).color;
@@ -23,8 +31,8 @@ function setCatOpen(id, open) {
 function addNoteCat() { // 저장은 부르는 쪽에서
   const name = (prompt('새 카테고리 이름') || '').trim();
   if (!name) return null;
-  const cats = noteCats(), used = cats.map(c => c.color);
-  const c = newRec('notecat', { name, color: NOTE_COLORS.find(x => !used.includes(x)) || NOTE_COLORS[0], order: nextOrder(cats) });
+  const cats = noteCats(), used = cats.map(c => c.color), pal = notePalette();
+  const c = newRec('notecat', { name, color: pal.find(x => !used.includes(x)) || pal[0] || NOTE_COLORS[0], order: nextOrder(cats) });
   db.recs.push(c);
   return c;
 }
@@ -278,12 +286,27 @@ function renderNoteCats() {
     out.push(row);
     if (pickingCat === c.id) {
       const pal = h('div', 'palette'), pick = col => { c.color = col; touch(c); pickingCat = null; save(); renderNoteCats(); };
-      pal.append(...NOTE_COLORS.map(col => dot(col, () => pick(col), col.toLowerCase() === c.color.toLowerCase())));
+      const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+      pal.append(...notePalette().map(col => {
+        const d = dot(col, () => pick(col), same(col, c.color));
+        d.title = '길게 누르면 (PC는 오른쪽 클릭도) 팔레트에서 지우기';
+        holdPress(d, () => {
+          if (!confirm('이 색을 팔레트에서 지울까요?\n이 색을 쓰는 카테고리는 그대로예요.')) return;
+          setNotePalette(notePalette().filter(x => x !== col));
+          save();
+          renderNoteCats();
+        });
+        return d;
+      }));
       const custom = h('label', 'cat-dot custom', '+'), input = h('input');
-      custom.title = '직접 고르기';
+      custom.title = '직접 골라서 팔레트에 더하기';
       input.type = 'color';
       input.value = c.color;
-      input.addEventListener('change', () => pick(input.value));
+      input.addEventListener('change', () => {
+        const col = input.value;
+        if (!notePalette().some(x => same(x, col))) setNotePalette([...notePalette(), col]);
+        pick(col);
+      });
       custom.append(input);
       pal.append(custom);
       out.push(pal);
@@ -553,6 +576,21 @@ function longPress(el, fn) {
   el.addEventListener('pointercancel', cancel);
   el.addEventListener('contextmenu', e => { if (fired) e.preventDefault(); });
   el.addEventListener('click', e => { if (fired) { fired = false; e.stopImmediatePropagation(); } }, true);
+}
+// 버튼 길게 누르기 (0.5초, 터치·마우스 공통) 또는 오른쪽 클릭 → fn.
+// 그 뒤 손을 뗄 때 오는 click·contextmenu(폰은 길게 누르면 옴)는 다음에 누를 때까지 막음 — fn이 다시 그려서 그 자리에 다른 버튼이 와도
+function holdPress(el, fn) {
+  let timer = null;
+  const types = ['click', 'contextmenu'], block = e => { e.preventDefault(); e.stopPropagation(); };
+  const fire = () => {
+    clearTimeout(timer);
+    types.forEach(t => addEventListener(t, block, true));
+    addEventListener('pointerdown', () => types.forEach(t => removeEventListener(t, block, true)), { capture: true, once: true });
+    fn();
+  };
+  el.addEventListener('pointerdown', e => { if (e.button === 0) timer = setTimeout(fire, 500); });
+  for (const t of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(t, () => clearTimeout(timer));
+  el.addEventListener('contextmenu', e => { e.preventDefault(); fire(); });
 }
 // 항목 이름을 그 자리에서 입력칸으로 (Enter·칸 밖 = 저장, Esc = 취소)
 function editText(li, e) {

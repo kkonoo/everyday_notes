@@ -24,6 +24,7 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
 //   notecat: { name, color, order }   노트에 붙이는 내 카테고리 (note.cat = id). 노트 색 = 카테고리 색, 없으면 종류 색
+//   palette: { colors: [] }   id = 'note-colors' — 카테고리 색 팔레트 (＋로 더하고 길게 눌러 지운 것. 없으면 NOTE_COLORS)
 //   bline: { side: 'in'|'out'|'save' (수입·지출·저축), group (지출 분류 id), account (통장 id), name, plans: { 'YYYY-MM': 금액 }, actual: { 달: 금액 }, fixed, from, to, order }   가계부 예산 항목
 //   asset: { type, name, values: { 'YYYY-MM': 금액 }, from, to, order }   재산 (대출은 빼기) / goal: { name, target, by: 'YYYY-MM', assets: [id] (비면 순자산 전체), order }
 //   bconf: { groups: [{ id, name }], accounts: [{ id, name }] }   id = 'budget' — 가계부 지출 분류·통장 (순서대로)
