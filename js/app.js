@@ -125,6 +125,18 @@ function enterBlurs(input) {
   input.enterKeyHint = 'done';
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); input.blur(); } });
 }
+// prompt() 대신: 앱 안 창이라 PC에서 Enter = 확인. 적은 이름(앞뒤 공백 뺌), 취소·Esc·뒤로 가기면 ''
+let askDone = () => {};
+function ask(label, value = '') {
+  $('askLabel').textContent = label;
+  $('askInput').value = value;
+  $('ask').showModal();
+  $('askInput').select();
+  return new Promise(res => { askDone = v => { askDone = () => {}; res(v); }; });
+}
+$('askForm').addEventListener('submit', e => { e.preventDefault(); $('ask').close(); askDone($('askInput').value.trim()); });
+$('askCancel').addEventListener('click', () => $('ask').close());
+$('ask').addEventListener('close', () => { if (!$('ask').open) askDone(''); }); // close는 늦게 옴: 그새 다시 연 창은 그대로
 const phone = () => matchMedia('(max-width: 900px)').matches;
 let toastTimer;
 function toast(text, ms = 2000) {

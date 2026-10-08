@@ -44,8 +44,8 @@ function confRec() { // 고칠 때: 없으면 만듦 (저장은 부르는 쪽에
   return c;
 }
 const accounts = () => bconf().accounts;
-function addAccount() {
-  const name = (prompt('새 통장 이름 (예: 월급통장, 생활비통장)') || '').trim();
+async function addAccount() {
+  const name = await ask('새 통장 이름 (예: 월급통장, 생활비통장)');
   if (!name) return null;
   const c = confRec(), a = { id: uid(), name };
   c.accounts = [...c.accounts, a];
@@ -195,8 +195,8 @@ function moveConf(key, id, targetId, before) {
   touch(c);
   save();
 }
-function addOutGroup() {
-  const name = (prompt('새 분류 이름 (예: 보험, 경조사)') || '').trim();
+async function addOutGroup() {
+  const name = await ask('새 분류 이름 (예: 보험, 경조사)');
   if (!name) return;
   const c = confRec(), g = { id: uid(), name };
   c.groups = [...c.groups, g];
@@ -205,8 +205,8 @@ function addOutGroup() {
   focusNext = `badd:out:${g.id}`;
   save();
 }
-function renameOutGroup(g) {
-  const name = (prompt('분류 이름', g.name) || '').trim();
+async function renameOutGroup(g) {
+  const name = await ask('분류 이름', g.name);
   if (!name || name === g.name) return;
   const c = confRec();
   c.groups = c.groups.map(x => (x.id === g.id ? { ...x, name } : x));
@@ -279,8 +279,8 @@ function accountSelect(l) {
   s.title = '통장';
   s.tabIndex = -1; // Tab은 금액 칸끼리만 옮겨 다니게
   s.classList.toggle('none', !s.value);
-  s.addEventListener('change', () => {
-    const a = s.value === '+' ? addAccount() : null;
+  s.addEventListener('change', async () => {
+    const a = s.value === '+' ? await addAccount() : null;
     if (s.value === '+' && !a) { render(); return; }
     l.account = a ? a.id : s.value || null;
     touch(l);
@@ -356,9 +356,9 @@ function openLine(l) {
   $('lineEditor').showModal();
 }
 const fillAccounts = id => fillSelect($('lineAccount'), [['', '통장 미정'], ...accounts().map(a => [a.id, a.name]), ['+', '+ 새 통장…']], id);
-$('lineAccount').addEventListener('change', e => {
+$('lineAccount').addEventListener('change', async e => {
   if (e.target.value !== '+') return;
-  const a = addAccount();
+  const a = await addAccount();
   if (a) save();
   fillAccounts(a ? a.id : lineEditing.account);
 });
@@ -418,9 +418,9 @@ function renderAccounts() {
     : '＋로 통장을 만들고 항목마다 통장을 고르면, 통장마다 들어오고 나가는 돈(계획)을 보여줘요.'));
   $('accountList').replaceChildren(...out);
 }
-$('newAccountBtn').addEventListener('click', () => { if (addAccount()) save(); });
-function renameAccount(a) {
-  const name = (prompt('통장 이름', a.name) || '').trim();
+$('newAccountBtn').addEventListener('click', async () => { if (await addAccount()) save(); });
+async function renameAccount(a) {
+  const name = await ask('통장 이름', a.name);
   if (!name || name === a.name) return;
   const c = confRec();
   c.accounts = c.accounts.map(x => (x.id === a.id ? { ...x, name } : x));

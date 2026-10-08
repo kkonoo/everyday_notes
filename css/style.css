@@ -658,6 +658,8 @@ textarea:focus { border-color: var(--accent); }
 }
 .pill-link:hover { background: var(--surface-2); color: var(--text); }
 .dialog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 18px; }
+#ask { width: min(380px, calc(100vw - 32px)); }
+#ask .dialog-actions { margin-top: 6px; }
 
 /* 한 주 식단 */
 #planner { width: min(560px, calc(100vw - 32px)); }
