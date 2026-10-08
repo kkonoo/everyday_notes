@@ -9,11 +9,8 @@ const TYPES = {
   list: { name: '목록', color: '#A8C8F0' },
 };
 // 내 카테고리: 종류와 따로 노트에 붙이는 묶음 { name, color, order }. 노트 색 = 카테고리 색, 없으면 종류 색 (목록 점·체크 칸)
-// 팔레트 = 캘린더x플래너 카테고리와 같은 16색 (＋로 직접 고르기도)
-const NOTE_COLORS = [
-  '#F4978E', '#F8B88B', '#F5D27A', '#C5D98F', '#9FCB8E', '#7FCFB8', '#84CDE0', '#8DB6F2',
-  '#A7A3F2', '#B99AF0', '#DDA0E5', '#F3A6C8', '#D2AE8E', '#A88B73', '#9AA5B1', '#C7C1B8',
-];
+// 팔레트 = 캘린더x플래너 카테고리 색에서 10개 (＋로 직접 고르기도)
+const NOTE_COLORS = ['#F4978E', '#F8B88B', '#F5D27A', '#9FCB8E', '#7FCFB8', '#84CDE0', '#8DB6F2', '#B99AF0', '#F3A6C8', '#C7C1B8'];
 const noteCats = () => recs('notecat').sort(byOrder);
 const noteCatOf = n => noteCats().find(c => c.id === n.cat) || null;
 const noteColor = n => (noteCatOf(n) || TYPES[n.type]).color;
