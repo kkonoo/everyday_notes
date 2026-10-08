@@ -312,7 +312,7 @@ function renderNoteCats() {
   out.push(button('+ 카테고리', () => { if (addNoteCat()) { save(); renderNoteCats(); } }));
   $('noteCatManage').replaceChildren(...out);
 }
-// 팔레트의 ＋: 예시(팔레트에 아직 없는 것)를 누르거나 색 코드를 넣어 더하기 → add(색)
+// 팔레트의 ＋: 예시(팔레트에 아직 없는 것)를 누르거나 색 코드를 넣어 더하기 → add(색), 바꾼 팔레트는 기본 색으로 되돌리기
 const COLOR_IDEAS = ['#C98B6B', '#D4B062', '#6F9C95', '#7F9CB7', '#A88BA8']; // 테라코타·머스터드·틸·더스티 블루·모브
 function colorAdder(add) {
   const box = h('div', 'color-add'), ideas = h('div', 'color-ideas'), row = h('div', 'color-code');
@@ -334,6 +334,13 @@ function colorAdder(add) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) ok(); });
   row.append(prev, input, button('더하기', ok, 'btn small'));
   box.append(ideas, row);
+  // 팔레트를 바꿨을 때만: 기본 10색으로 (카테고리에 칠한 색은 그대로)
+  if (notePalette().join() !== NOTE_COLORS.join()) box.append(button('기본 색으로 되돌리기', () => {
+    if (!confirm('팔레트를 기본 10색으로 되돌릴까요?\n더하거나 지운 색은 원래대로 되고, 카테고리 색은 그대로예요.')) return;
+    setNotePalette([...NOTE_COLORS]);
+    save();
+    renderNoteCats();
+  }, 'btn small reset'));
   return box;
 }
 // 설정 › 노트 › 카테고리 편집 (따로 여는 창)

@@ -203,6 +203,7 @@ body[data-view="budget"] .budget-view { display: grid; grid-template-columns: mi
 .color-add { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px 17px; padding: 10px 6px; border-radius: 10px; background: var(--surface-2); }
 .color-add .text-input { background: var(--surface); }
 .color-ideas, .color-code { display: flex; align-items: center; gap: 6px; }
+.color-add .reset { align-self: flex-start; }
 .color-add .preview { --c: transparent; box-shadow: inset 0 0 0 2px var(--faint); cursor: default; }
 .text-input.bad { border-color: var(--sun); }
 .cat-row { margin: 4px 0; }
