@@ -251,7 +251,7 @@ function editBar(n) {
   return bar;
 }
 // 설정 › 노트 › 카테고리 편집: 색(점을 누르면 고르기)·이름 바꾸기·지우기 (지우면 그 노트들은 카테고리 없음)
-let pickingCat = null; // 색 고르는 중인 카테고리
+let pickingCat = null, addingColor = false; // 색 고르는 중인 카테고리, 팔레트의 ＋(색 더하기)를 펼쳤는지
 function renderNoteCats() {
   const out = [], dot = (color, onClick, on) => {
     const b = button('', onClick, 'cat-dot' + (on ? ' on' : ''));
@@ -267,7 +267,7 @@ function renderNoteCats() {
       save();
       renderNoteCats();
     });
-    const d = dot(c.color, () => { pickingCat = pickingCat === c.id ? null : c.id; renderNoteCats(); }, pickingCat === c.id);
+    const d = dot(c.color, () => { pickingCat = pickingCat === c.id ? null : c.id; addingColor = false; renderNoteCats(); }, pickingCat === c.id);
     d.title = '색 바꾸기';
     row.append(handle, d, h('span', 'cat-name', c.name), h('span', 'hint', `노트 ${n}`), iconBtn('✎', '이름 바꾸기', () => {
       const name = (prompt('카테고리 이름', c.name) || '').trim();
@@ -298,28 +298,49 @@ function renderNoteCats() {
         });
         return d;
       }));
-      const custom = h('label', 'cat-dot custom', '+'), input = h('input');
-      custom.title = '직접 골라서 팔레트에 더하기';
-      input.type = 'color';
-      input.value = c.color;
-      input.addEventListener('change', () => {
-        const col = input.value;
-        if (!notePalette().some(x => same(x, col))) setNotePalette([...notePalette(), col]);
-        pick(col);
-      });
-      custom.append(input);
+      const custom = button('+', () => { addingColor = !addingColor; renderNoteCats(); }, 'cat-dot custom' + (addingColor ? ' on' : ''));
+      custom.title = '색 더하기';
       pal.append(custom);
       out.push(pal);
+      if (addingColor) out.push(colorAdder(col => {
+        if (!notePalette().some(x => same(x, col))) setNotePalette([...notePalette(), col]);
+        pick(col);
+      }));
     }
   }
   if (!out.length) out.push(h('p', 'hint', '카테고리를 만들어 노트에 붙이면 (노트 › 편집) 목록이 카테고리별로 묶이고 그 색이 돼요.'));
   out.push(button('+ 카테고리', () => { if (addNoteCat()) { save(); renderNoteCats(); } }));
   $('noteCatManage').replaceChildren(...out);
 }
+// 팔레트의 ＋: 예시(팔레트에 아직 없는 것)를 누르거나 색 코드를 넣어 더하기 → add(색)
+const COLOR_IDEAS = ['#C98B6B', '#D4B062', '#6F9C95', '#7F9CB7', '#A88BA8']; // 테라코타·머스터드·틸·더스티 블루·모브
+function colorAdder(add) {
+  const box = h('div', 'color-add'), ideas = h('div', 'color-ideas'), row = h('div', 'color-code');
+  ideas.append(...COLOR_IDEAS.filter(x => !notePalette().includes(x)).map(col => {
+    const d = button('', () => add(col), 'cat-dot');
+    d.style.setProperty('--c', col);
+    d.title = col;
+    return d;
+  }));
+  const prev = h('span', 'cat-dot preview'), input = h('input', 'text-input');
+  input.placeholder = '색 코드 (#A1B2C3)';
+  input.maxLength = 7;
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.enterKeyHint = 'done';
+  const code = () => { const v = input.value.trim().replace(/^#/, ''); return /^[0-9a-f]{6}$/i.test(v) ? `#${v.toUpperCase()}` : null; };
+  input.addEventListener('input', () => { input.classList.remove('bad'); prev.style.setProperty('--c', code() || 'transparent'); });
+  const ok = () => { if (code()) add(code()); else input.classList.add('bad'); };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) ok(); });
+  row.append(prev, input, button('더하기', ok, 'btn small'));
+  box.append(ideas, row);
+  return box;
+}
 // 설정 › 노트 › 카테고리 편집 (따로 여는 창)
 $('noteCatsBtn').addEventListener('click', () => {
   $('settings').close();
   pickingCat = null;
+  addingColor = false;
   renderNoteCats();
   $('noteCats').showModal();
 });
