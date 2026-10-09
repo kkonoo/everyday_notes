@@ -155,7 +155,6 @@ let focusNext = null; // 다시 그린 뒤 커서를 둘 칸의 data-key (새 �
 function render() {
   const v = ['meals', 'fridge', 'budget'].includes(prefs.view) ? prefs.view : 'notes';
   document.body.dataset.view = v;
-  $('viewTitle').textContent = v === 'fridge' ? '냉장고' : '노트';
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   const a = document.activeElement;
   const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart, end: a.selectionEnd } : null;
