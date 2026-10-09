@@ -773,6 +773,7 @@ textarea:focus { border-color: var(--accent); }
 .map-info { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); font-size: 13.5px; }
 .map-info > b { font-size: 15px; }
 .map-info .tag { padding: 2px 9px; border-radius: 99px; background: var(--surface-2); font-size: 12px; }
+.info-actions { flex-basis: 100%; display: flex; justify-content: flex-end; }
 .level-seg button { padding-inline: 10px; }
 /* 보관 위치 편집 창: 그림 단추 = 종류 고르기 */
 .place-row { margin: 4px 0; }

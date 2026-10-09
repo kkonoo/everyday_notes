@@ -239,20 +239,25 @@ function stockChip(s, on, top = false) {
   longPress(c, start => dragRow(c, '.place-card[data-place]', drop, start));
   return c;
 }
+// 아래 줄 오른쪽 끝 단추 (고치기·위치 편집): 늘 따로 한 줄
+function infoActions(btn) {
+  const row = h('div', 'info-actions');
+  row.append(btn);
+  return row;
+}
 // 고른 재료: 양 단추(바로 바뀜) · 위치 · 유통기한 · 메모 · 고치기
 function itemInfo(s) {
   const box = h('div', 'map-info'), seg = h('div', 'seg level-seg'), d = daysLeft(s), p = placeOf(s);
   for (const l of [2, 1, 0]) seg.append(button(AMOUNTS[l], () => { setLevel(s, l); save(); }, s.level === l ? 'on' : ''));
   const tags = [p ? p.name : '위치 미정', s.expiry ? dueText(d, s.expiry) : '유통기한 없음', s.base && '기본 재료', s.memo].filter(Boolean);
-  box.append(h('b', '', s.name), seg, ...tags.map(t => h('span', 'tag', t)), h('span', 'spacer'), button('고치기', () => openStock(s), 'btn small'));
+  box.append(h('b', '', s.name), seg, ...tags.map(t => h('span', 'tag', t)), infoActions(button('고치기', () => openStock(s), 'btn small')));
   return box;
 }
 // 고른 위치: 종류 · 개수 · 위치 편집
 function placeInfo(p, list) {
   const box = h('div', 'map-info');
   box.append(h('b', '', p ? p.name : '위치 미정'), ...(p ? [h('span', 'tag', typeOf(p).label)] : []),
-    h('span', 'hint', `재료 ${list.length}개` + (p ? ' · 위 칸에 적으면 이곳에 들어가요' : '')), h('span', 'spacer'),
-    button('위치 편집', openPlaces, 'btn small'));
+    h('span', 'hint', `재료 ${list.length}개` + (p ? ' · 위 칸에 적으면 이곳에 들어가요' : '')), infoActions(button('위치 편집', openPlaces, 'btn small')));
   return box;
 }
 // 늘 있는 것: 재고로 세지 않고 늘 있는 걸로 치는 재료 (물·소금 등). 칩을 누르면 빼기, 끝 칸에 적고 Enter면 더하기
