@@ -18,7 +18,7 @@
 <header class="topbar">
   <div class="nav">
     <button class="icon-btn" id="backBtn" aria-label="노트 목록">‹</button>
-    <h1 class="view-title">노트</h1>
+    <h1 class="view-title" id="viewTitle">노트</h1>
     <span class="meal-nav">
       <button class="icon-btn" id="prevBtn" aria-label="이전 달">‹</button>
       <button class="month-title" id="monthTitle" popovertarget="monthPicker" title="연·월 고르기"></button>
@@ -30,6 +30,7 @@
     <div class="seg" id="viewSeg">
       <button type="button" data-view="notes">노트</button>
       <button type="button" data-view="meals">식단</button>
+      <button type="button" data-view="fridge">냉장고</button>
       <button type="button" data-view="budget">가계부</button>
     </div>
     <button class="btn" id="accountBtn" hidden>로그인</button>
@@ -100,6 +101,36 @@
       <div class="pills" id="menuCuisines"></div>
       <div class="pills" id="menuCourses"></div>
       <div id="menuList"></div>
+    </section>
+  </aside>
+</main>
+
+<!-- 냉장고: 왼쪽 재고 + 오른쪽 오늘 뭐 해 먹지 (폰은 위의 단추로 하나씩) -->
+<main class="fridge-view" id="fridgeView">
+  <div class="seg fridge-tabs" id="fridgeSeg">
+    <button type="button" data-pane="stock">재고</button>
+    <button type="button" data-pane="cook">뭐 해 먹지</button>
+  </div>
+  <section class="stock">
+    <div class="stock-add">
+      <div class="seg" id="placeSeg">
+        <button type="button" data-place="cold">냉장</button>
+        <button type="button" data-place="frozen">냉동</button>
+        <button type="button" data-place="room">실온</button>
+        <button type="button" data-place="sauce">조미료</button>
+      </div>
+      <textarea class="add-input" id="stockInput" rows="1" placeholder="+ 재료 추가 (쉼표·줄바꿈으로 여러 개)" autocomplete="off"></textarea>
+    </div>
+    <div id="stockList"></div>
+  </section>
+  <div class="splitter" data-split="fridge" title="끌어서 너비 조절 (두 번 누르면 원래대로)"></div>
+  <aside class="side" id="cookPane">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>오늘 뭐 해 먹지</h2>
+        <span class="count" id="cookCount"></span>
+      </div>
+      <div id="cookList"></div>
     </section>
   </aside>
 </main>
@@ -178,6 +209,8 @@
     <div class="pills tag-pills" id="menuTagPills"><input id="menuTagInput" class="tag-input" placeholder="새 태그" autocomplete="off"></div>
     <label class="field-label">재료 <span class="hint">한 줄에 하나씩 (쉼표로 나눠도 돼요)</span></label>
     <textarea name="ingredients" rows="4" placeholder="예) 두부&#10;대파&#10;고춧가루"></textarea>
+    <label class="field-label">선택 재료 <span class="hint">없어도 만들 수 있는 것. 냉장고 추천에서 따지지 않아요</span></label>
+    <textarea name="optional" rows="2" placeholder="예) 깨&#10;김가루"></textarea>
     <label class="field-label">만드는 법</label>
     <textarea name="recipe" rows="5"></textarea>
     <div class="row">
@@ -288,6 +321,60 @@
   <div class="dialog-actions"><span class="spacer"></span><button type="button" class="btn primary" id="noteCatsClose">닫기</button></div>
 </dialog>
 
+<dialog id="stockEditor">
+  <form id="stockForm">
+    <input name="name" class="title-input" placeholder="재료 이름" required autocomplete="off">
+    <div class="row">
+      <label>위치</label>
+      <div class="seg" id="stockPlaceSeg">
+        <button type="button" data-place="cold">냉장</button>
+        <button type="button" data-place="frozen">냉동</button>
+        <button type="button" data-place="room">실온</button>
+        <button type="button" data-place="sauce">조미료</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>양</label>
+      <div class="seg" id="stockLevelSeg">
+        <button type="button" data-level="2">많음</button>
+        <button type="button" data-level="1">조금</button>
+        <button type="button" data-level="0">다 떨어짐</button>
+      </div>
+    </div>
+    <div class="row"><label>유통기한</label><input name="expiry" type="date" class="text-input"></div>
+    <div class="row"><label>메모</label><input name="memo" class="text-input" autocomplete="off"></div>
+    <label class="check-row"><input type="checkbox" name="base"> 기본 재료 <span class="hint">간장·고추장처럼 오래 두는 것. 목록 아래 ‘기본 재료’ 줄 안에 접혀 있어요</span></label>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="stockDelBtn">삭제</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="stockCancel">취소</button>
+      <button class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cooked">
+  <h2 id="cookedTitle"></h2>
+  <div class="row">
+    <label>끼니</label>
+    <div class="seg" id="cookedSlot">
+      <button type="button" data-slot="b">아침</button>
+      <button type="button" data-slot="l">점심</button>
+      <button type="button" data-slot="s">간식</button>
+      <button type="button" data-slot="d">저녁</button>
+      <button type="button" data-slot="n">야식</button>
+    </div>
+  </div>
+  <p class="hint" id="cookedNote"></p>
+  <label class="field-label">쓴 재료 <span class="hint">체크한 재료는 양을 한 단계 내려요</span></label>
+  <div id="cookedItems"></div>
+  <div class="dialog-actions">
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="cookedCancel">취소</button>
+    <button type="button" class="btn primary" id="cookedOk">오늘 식단에 기록</button>
+  </div>
+</dialog>
+
 <dialog id="lineEditor">
   <form id="lineForm">
     <input name="name" class="title-input" placeholder="항목 이름" required autocomplete="off">
@@ -385,6 +472,15 @@
     <div class="pills" id="tagManage"></div>
   </div>
 
+  <h2>냉장고</h2>
+  <div class="row wide">
+    <label>항상 있는 재료</label>
+    <input id="alwaysInput" class="text-input" placeholder="쉼표로 나눠 적기 (예: 물, 소금)" autocomplete="off">
+  </div>
+  <p class="hint">재고에 없어도 있는 걸로 쳐요.</p>
+  <label class="field-label">별칭 <span class="hint">같은 재료로 칠 이름을 한 줄에 하나씩 (예: 달걀 = 계란)</span></label>
+  <textarea id="aliasText" rows="3"></textarea>
+
   <h2>백업</h2>
   <div class="row">
     <button class="btn" id="exportBtn">백업 파일 저장 (.json)</button>
@@ -402,6 +498,7 @@
 <script src="js/meals.js"></script>
 <script src="js/planner.js"></script>
 <script src="js/menu-groups.js"></script>
+<script src="js/fridge.js"></script>
 <script src="js/budget.js"></script>
 <script type="module" src="js/sync.js"></script>
 </body>

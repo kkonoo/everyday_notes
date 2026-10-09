@@ -1,6 +1,6 @@
 'use strict';
 // 살림노트 공통: 날짜 유틸, 저장, 그리기, 설정, 끌어서 순서 바꾸기, 폰 뒤로 가기
-// 노트는 notes.js, 식단은 meals.js, 가계부는 budget.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
+// 노트는 notes.js, 식단은 meals.js, 냉장고는 fridge.js, 가계부는 budget.js, 로그인·동기화는 sync.js (서로 전역 변수·함수를 같이 씀)
 
 // ---------- 날짜 유틸: 'YYYY-MM-DD' 문자열 ↔ 일(day) 번호 ----------
 const DAY_MS = 86400000;
@@ -18,13 +18,16 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 // db.recs = 노트·항목·메뉴·식단을 한 배열에 (kind로 구분). 동기화는 한 줄(rec)씩, updatedAt이 늦은 쪽이 이김
 //   note:  { type: 'shop'|'check'|'list'|'memo', cat, title, sections: [{ id, name }], text, order }   list = 주제별 메모 목록
 //   entry: { note, section, text, done, need, memo, order }   need = 장보기의 '살 것', memo = 목록 항목의 내용
-//   menu:  { name, cuisine, course, sub, tags: [], ingredients: [], recipe, link }   종류 › 분류 › 하위분류 (없으면 ''), tags = 계절·손님초대 등
+//   menu:  { name, cuisine, course, sub, tags: [], ingredients: [], optional: [], recipe, link }   종류 › 분류 › 하위분류 (없으면 ''), tags = 계절·손님초대 등
+//          ingredients = 필수 재료, optional = 선택 재료 (냉장고 추천에서 안 따짐. 없으면 [])
 //   meal:  { date, slot: 'b'|'l'|'s'|'d'|'n' (아침·점심·간식·저녁·야식), name, menu, order }
 //   season: { month, items: [] }   id = 'season-월' — 제철 재료. 고친 달만 (나머지는 menu-presets.js 기본값)
 //   groups: { paths: [[종류, 분류?, 하위분류?]] }   id = 'menu-groups' — 직접 만든 빈 메뉴 그룹 (메뉴 분류 정리의 ＋)
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
 //   notecat: { name, color, order }   노트에 붙이는 내 카테고리 (note.cat = id). 노트 색 = 카테고리 색, 없으면 종류 색
 //   palette: { colors: [] }   id = 'note-colors' — 카테고리 색 팔레트 (＋로 더하고 길게 눌러 지운 것. 없으면 NOTE_COLORS)
+//   stock: { name, place: 'cold'|'frozen'|'room'|'sauce' (냉장·냉동·실온·조미료), level: 2|1|0 (많음·조금·다 떨어짐), expiry: 'YYYY-MM-DD'|'', memo, base }   냉장고 재고 (base = 기본 재료: 목록에서 접힘)
+//   fridge: { always: [], aliases: [[이름, 이름…]] }   id = 'fridge' — 항상 있는 재료, 같은 재료로 칠 이름 묶음 (없으면 fridge.js 기본값)
 //   bline: { side: 'in'|'out'|'save' (수입·지출·저축), group (지출 분류 id), account (통장 id), name, plans: { 'YYYY-MM': 금액 }, actual: { 달: 금액 }, fixed, from, to, order }   가계부 예산 항목
 //   asset: { type, name, values: { 'YYYY-MM': 금액 }, from, to, order }   재산 (대출은 빼기) / goal: { name, target, by: 'YYYY-MM', assets: [id] (비면 순자산 전체), order }
 //   bconf: { groups: [{ id, name }], accounts: [{ id, name }] }   id = 'budget' — 가계부 지출 분류·통장 (순서대로)
@@ -146,16 +149,17 @@ function toast(text, ms = 2000) {
   toastTimer = setTimeout(() => $('toast').classList.remove('show'), ms);
 }
 
-// 보기: notes(노트) / meals(식단) / budget(가계부)
+// 보기: notes(노트) / meals(식단) / fridge(냉장고) / budget(가계부)
 // 입력 중이던 칸(data-key)은 다시 그린 뒤에도 글자·커서(선택) 그대로 (동기화로 다시 그려져도)
 let focusNext = null; // 다시 그린 뒤 커서를 둘 칸의 data-key (새 묶음 이름 등)
 function render() {
-  const v = ['meals', 'budget'].includes(prefs.view) ? prefs.view : 'notes';
+  const v = ['meals', 'fridge', 'budget'].includes(prefs.view) ? prefs.view : 'notes';
   document.body.dataset.view = v;
+  $('viewTitle').textContent = v === 'fridge' ? '냉장고' : '노트';
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   const a = document.activeElement;
   const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart, end: a.selectionEnd } : null;
-  if (v === 'meals') renderMeals(); else if (v === 'budget') renderBudget(); else renderNotes();
+  if (v === 'meals') renderMeals(); else if (v === 'fridge') renderFridge(); else if (v === 'budget') renderBudget(); else renderNotes();
   const key = focusNext || (keep && keep.key);
   focusNext = null;
   const e = key && document.querySelector(`[data-key="${CSS.escape(key)}"]`);
@@ -256,8 +260,8 @@ function dragHandle() {
   return s;
 }
 
-// ---------- 패널 너비: 노트는 왼쪽 목록, 식단·가계부는 오른쪽 패널 ----------
-// 사이 경계(.splitter)를 끌어서 조절, 두 번 누르면 원래대로. prefs.sideW = { notes, meals, budget } (캘린더x플래너와 같은 방식)
+// ---------- 패널 너비: 노트는 왼쪽 목록, 식단·냉장고·가계부는 오른쪽 패널 ----------
+// 사이 경계(.splitter)를 끌어서 조절, 두 번 누르면 원래대로. prefs.sideW = { notes, meals, fridge, budget } (캘린더x플래너와 같은 방식)
 function applySideW() {
   for (const s of document.querySelectorAll('.splitter')) {
     const w = (prefs.sideW || {})[s.dataset.split];
@@ -396,7 +400,7 @@ if (phone()) {
     if (dlg) dlg.close();
     else if (pickerOpen) $('monthPicker').hidePopover();
     else if (open) document.activeElement.blur();
-    else if (prefs.view === 'meals' || prefs.view === 'budget') { prefs.view = 'notes'; savePrefs(); render(); }
+    else if (['meals', 'fridge', 'budget'].includes(prefs.view)) { prefs.view = 'notes'; savePrefs(); render(); }
     else if (editing) { editing = false; render(); }
     else if (notePage) { notePage = false; render(); }
     else {

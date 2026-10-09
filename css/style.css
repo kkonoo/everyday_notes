@@ -91,7 +91,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mp-grid button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .meal-nav .btn { margin-left: 8px; }
 #backBtn { display: none; }
-body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title, body[data-view="budget"] .view-title { display: none; }
+body[data-view="notes"] .meal-nav, body[data-view="fridge"] .meal-nav, body[data-view="meals"] .view-title, body[data-view="budget"] .view-title { display: none; }
 
 .btn {
   border: 1px solid var(--line);
@@ -154,11 +154,12 @@ body[data-view="notes"] .meal-nav, body[data-view="meals"] .view-title, body[dat
 .spacer { flex: 1; }
 
 /* ---------- 보기 전환 ---------- */
-.notes-view, .meals-view, .budget-view { display: none; flex: 1; min-height: 0; padding: 0 24px 24px; }
+.notes-view, .meals-view, .fridge-view, .budget-view { display: none; flex: 1; min-height: 0; padding: 0 24px 24px; }
 body[data-view="notes"] .notes-view { display: flex; }
 /* 노트: 목록 | 경계(16px, 끌어서 목록 너비 조절 — app.js) | 내용. 식단·가계부: 왼쪽 | 경계 | 오른쪽(너비 조절) */
 .notes-view > .splitter { flex: none; width: 16px; }
 body[data-view="meals"] .meals-view { display: grid; grid-template-columns: minmax(0, 1fr) 16px var(--side-w, 360px); }
+body[data-view="fridge"] .fridge-view { display: grid; grid-template-columns: minmax(0, 1fr) 16px var(--side-w, 380px); }
 body[data-view="budget"] .budget-view { display: grid; grid-template-columns: minmax(0, 1fr) 16px var(--side-w, 380px); }
 .splitter { position: relative; cursor: col-resize; touch-action: none; }
 .splitter::after { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 4px; border-radius: 2px; transition: background .15s; }
@@ -709,6 +710,43 @@ textarea:focus { border-color: var(--accent); }
 .plan-items .none { padding: 3px 2px; font-size: 12px; color: var(--faint); }
 .plan-chosen { margin: 8px 0; }
 
+/* ---------- 냉장고 (fridge.js) ---------- */
+.fridge-tabs { display: none; } /* 폰에서만: 재고 ↔ 뭐 해 먹지 */
+.stock { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
+.stock > * { flex: none; }
+.stock-add { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.stock-add .add-input { margin-top: 0; background: var(--surface); field-sizing: content; resize: none; line-height: 1.4; }
+#stockList { display: flex; flex-direction: column; gap: 12px; }
+.stock-sec .sec-head { cursor: default; }
+.stock-sec.soon { border-color: color-mix(in srgb, var(--snack) 55%, var(--line)); }
+.stock-sec.over { border-color: color-mix(in srgb, var(--sun) 45%, var(--line)); }
+.stock-row.out .text { color: var(--muted); }
+.stock-memo { flex: 0 1 40%; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; color: var(--muted); }
+.stock-place { font-size: 12px; color: var(--muted); white-space: nowrap; }
+/* 유통기한: 곧(3일 이내) = 살구, 지남 = 빨강 */
+.due { padding: 1px 7px; border-radius: 99px; font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.due.soon { background: color-mix(in srgb, var(--snack) 24%, transparent); color: var(--text); font-weight: 600; }
+.due.over { background: color-mix(in srgb, var(--sun) 14%, transparent); color: var(--sun); font-weight: 600; }
+/* 양: 한 번 누를 때마다 많음 → 조금 → 다 떨어짐 */
+.level { flex: none; min-width: 76px; padding: 6px 10px; border: 1px solid transparent; border-radius: 99px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.level.l2 { background: var(--accent-soft); color: var(--accent); }
+.level.l1 { background: color-mix(in srgb, var(--breakfast) 24%, transparent); color: var(--text); }
+.level.l0 { background: transparent; border: 1px dashed var(--line); color: var(--faint); font-weight: 500; }
+.base-head { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 6px 4px; border-radius: 8px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+.base-head:hover { background: var(--surface-2); }
+.base-head .fold { width: 14px; color: var(--faint); font-size: 12px; transition: transform .15s; }
+.base-head.folded .fold { transform: rotate(-90deg); }
+/* 오늘 뭐 해 먹지 */
+.cook-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.cook-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 4px 8px 8px; border-radius: 8px; }
+.cook-row:hover { background: var(--surface-2); }
+.cook-main { flex: 1 1 140px; min-width: 0; cursor: pointer; }
+.cook-main .title { font-size: var(--list-font); font-weight: 600; overflow-wrap: anywhere; }
+.cook-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 3px; }
+.cook-miss { font-size: 12px; color: var(--sun); }
+.cook-btns { display: flex; gap: 4px; margin-left: auto; }
+#cookedItems .check-row { margin: 8px 0; }
+
 /* ---------- 가계부 (budget.js) ---------- */
 .sheet { --amt: 124px; --dif: 92px; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
 .sheet > * { flex: none; }
@@ -851,8 +889,12 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   body { height: auto; min-height: 100vh; }
   .topbar { padding: 12px 12px 10px; }
   .month-title { min-width: 104px; font-size: 18px; }
-  .notes-view, .meals-view, .budget-view { padding: 0 12px 16px; }
-  body[data-view="meals"] .meals-view, body[data-view="budget"] .budget-view { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  /* 위 줄: 보기 4개 + 로그인·테마·설정이 360px 폰 한 줄에 들어가게 */
+  .tools { gap: 4px; }
+  .tools > .btn { padding-inline: 10px; }
+  #viewSeg button { padding-inline: 6px; }
+  .notes-view, .meals-view, .fridge-view, .budget-view { padding: 0 12px 16px; }
+  body[data-view="meals"] .meals-view, body[data-view="fridge"] .fridge-view, body[data-view="budget"] .budget-view { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .splitter { display: none; } /* 폰은 위아래로 쌓으니 너비 조절 없음 */
 
   /* 가계부: 차이 칸은 빼고 실제 금액 글자색으로 (넘으면 빨강) */
@@ -868,6 +910,18 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .bline { padding-block: 3px; }
   .bline .handle, .bgroup .handle, .btools, .acct-row .icon-btn, .acct-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
   #goalAssets { margin-left: 0; }
+
+  /* 냉장고: 위의 단추로 재고 ↔ 뭐 해 먹지. 냉장고 앞에서 한 손으로 누르기 쉽게 크게 */
+  .fridge-view { align-content: start; } /* 남는 높이로 위 단추가 늘어나지 않게 */
+  .fridge-tabs { display: flex; }
+  .fridge-tabs button { flex: 1; padding-block: 8px; font-size: 14px; }
+  .fridge-view[data-pane="cook"] .stock, .fridge-view[data-pane="stock"] #cookPane { display: none; }
+  .stock { overflow: visible; }
+  .stock-add .seg { align-self: stretch; }
+  .stock-add .seg button { flex: 1; padding-block: 7px; }
+  .level { min-width: 84px; padding: 8px 12px; font-size: 14px; }
+  .cook-row { padding-block: 10px; }
+  .cook-btns .btn { padding: 7px 12px; font-size: 13px; }
 
   /* 노트: 목록 화면 ↔ 노트 화면 */
   body[data-page="note"] .note-nav, body[data-page="list"] .note { display: none; }

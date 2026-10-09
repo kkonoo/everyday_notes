@@ -344,7 +344,7 @@ function renderMenus() {
   menuPills($('menuCuisines'), cuisines, menuCuisine, 'menuCuisine', v => v === NO_CAT ? null : [v]);
   menuPills($('menuCourses'), courses, menuCourse, 'menuCourse', v => known(menuCuisine) && known(v) ? [menuCuisine, v] : null);
   // 재료·태그로도 찾기 (예: '두부' → 두부가 들어가는 메뉴)
-  const list = q ? all.filter(x => [x.name, ...(x.ingredients || []), ...tagsOf(x)].some(v => norm(v).includes(q)))
+  const list = q ? all.filter(x => [x.name, ...(x.ingredients || []), ...(x.optional || []), ...tagsOf(x)].some(v => norm(v).includes(q)))
     : menuTag ? all.filter(x => tagsOf(x).includes(menuTag))
     : all.filter(x => cuisineOf(x) === menuCuisine && courseOf(x) === menuCourse);
   $('menuCount').textContent = all.length || '';
@@ -478,6 +478,7 @@ function openMenu(menu, meal) {
   tagInput.value = '';
   renderTagPills();
   menuForm.ingredients.value = (menu.ingredients || []).join('\n');
+  menuForm.optional.value = (menu.optional || []).join('\n');
   menuForm.recipe.value = menu.recipe || '';
   menuForm.link.value = menu.link || '';
   $('menuDelBtn').hidden = !db.recs.includes(menu);
@@ -497,6 +498,7 @@ menuForm.addEventListener('submit', e => {
   m.tags = typed && !editTags.includes(typed) ? [...editTags, typed] : editTags;
   if (m.tags.some(t => hiddenTags().includes(t))) setHiddenTags(hiddenTags().filter(t => !m.tags.includes(t))); // 지웠던 기본 태그를 다시 쓰면
   m.ingredients = parseIngredients(menuForm.ingredients.value);
+  m.optional = parseIngredients(menuForm.optional.value);
   m.recipe = menuForm.recipe.value;
   m.link = menuForm.link.value.trim();
   touch(m);
