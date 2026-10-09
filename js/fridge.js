@@ -250,8 +250,8 @@ function placeCard(p, list, state, ctx, chip) {
     h('small', '', [`${list.length}개`, soon && `곧 ${soon}`, out && `다 떨어짐 ${out}`].filter(Boolean).join(' · ')));
   head.append(placeIcon(p), name);
   const card = h('div', `place-card ${p ? '' : 'none'} ${state}`), chips = h('div', 'place-items');
-  // 종류 순서 → 가나다
-  const order = xs => [...xs].sort((a, b) => ctx.rank(a) - ctx.rank(b) || a.name.localeCompare(b.name, 'ko'));
+  // 남은 것 먼저, 다 떨어진 것은 뒤로. 각각 종류 순서 → 가나다
+  const order = xs => [...xs].sort((a, b) => hasLeft(b) - hasLeft(a) || ctx.rank(a) - ctx.rank(b) || a.name.localeCompare(b.name, 'ko'));
   const base = list.filter(s => s.base);
   chips.append(...order(list.filter(s => !s.base)).map(s => chip(s)));
   if (base.length) {
