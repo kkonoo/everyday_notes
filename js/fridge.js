@@ -53,11 +53,13 @@ async function addPlaceRec() { // 저장까지
   return p;
 }
 
-// ---------- 재료 종류 (야채·과일·단백질…): 위치 카드 안에서 칩을 종류끼리 모으고, 종류를 누르면 그 종류만 진하게 ----------
-// foodcat rec { name, order }. 처음엔 기본 13가지 — id를 정해 둠 ('fc-…', 보관 위치 id와 겹치지 않게). 설정 › 재료 종류 편집
+// ---------- 재료 종류 (야채·과일·단백질…): 칩 점 색 = 종류 색, 위치 카드 안에서 종류끼리 모으고, 종류를 누르면 그 종류만 진하게 ----------
+// foodcat rec { name, color, order }. 처음엔 기본 13가지 — id를 정해 둠 ('fc-…', 보관 위치 id와 겹치지 않게). 설정 › 재료 종류 편집
 // 재료의 종류 = 고른 것(stock.cat), 안 골랐으면 이름으로 짐작(FOOD_WORDS, 저장 안 함), 모르면 기타. 지운 종류였으면 기타
-const BASE_CATS = [['veg', '야채'], ['fruit', '과일'], ['protein', '단백질'], ['carb', '탄수'], ['fiber', '섬유질'], ['sea', '해산물'], ['tea', '차'],
-  ['sauce', '조미료'], ['spice', '향신료'], ['dairy', '유제품'], ['nut', '견과류'], ['powder', '가루'], ['etc', '기타']].map(([k, name]) => [`fc-${k}`, name]);
+// 기본 색은 노트 카테고리 팔레트(NOTE_COLORS)와 그 ＋ 예시 색(COLOR_IDEAS)에서
+const BASE_CATS = [['veg', '야채', '#9FCB8E'], ['fruit', '과일', '#F3A6C8'], ['protein', '단백질', '#F4978E'], ['carb', '탄수', '#F5D27A'],
+  ['fiber', '섬유질', '#6F9C95'], ['sea', '해산물', '#84CDE0'], ['tea', '차', '#7FCFB8'], ['sauce', '조미료', '#C98B6B'], ['spice', '향신료', '#F8B88B'],
+  ['dairy', '유제품', '#8DB6F2'], ['nut', '견과류', '#D4B062'], ['powder', '가루', '#B99AF0'], ['etc', '기타', '#C7C1B8']].map(([k, name, color]) => [`fc-${k}`, name, color]);
 // 이름 짐작: 같은 이름이 있으면 그 종류, 없으면 이름 안에 든 가장 긴 낱말의 종류 (한 글자 낱말은 같을 때만: '파' ≠ '양파')
 const FOOD_WORDS = {
   veg: '양파, 대파, 쪽파, 파, 마늘, 다진마늘, 생강, 고추, 청양고추, 풋고추, 꽈리고추, 홍고추, 피망, 파프리카, 당근, 감자, 고구마, 무, 배추, 알배추, 양배추, 상추, 깻잎, 시금치, 부추, 미나리, 콩나물, 숙주, 오이, 애호박, 호박, 단호박, 가지, 토마토, 방울토마토, 브로콜리, 콜리플라워, 양상추, 셀러리, 아스파라거스, 버섯, 표고버섯, 느타리버섯, 팽이버섯, 새송이버섯, 양송이버섯, 연근, 우엉, 도라지, 고사리, 시래기, 냉이, 달래, 쑥갓, 청경채, 비트, 케일, 루꼴라, 옥수수, 아욱, 쑥',
@@ -74,11 +76,12 @@ const FOOD_WORDS = {
   powder: '밀가루, 박력분, 중력분, 강력분, 부침가루, 튀김가루, 빵가루, 전분, 감자전분, 옥수수전분, 찹쌀가루, 쌀가루, 베이킹파우더, 베이킹소다, 코코아파우더, 카카오파우더, 들깨가루, 콩가루, 미숫가루, 파우더, 가루, 이스트',
 };
 const foodCats = () => (db.recs.some(r => r.kind === 'foodcat') ? recs('foodcat').sort(byOrder)
-  : BASE_CATS.map(([id, name], order) => ({ id, name, order })));
+  : BASE_CATS.map(([id, name, color], order) => ({ id, name, color, order })));
+const catColor = c => (c && c.color) || '#C7C1B8';
 // 고치기 전에: 기본 종류를 계정에 저장해 두고 rec 목록을 돌려줌 (저장은 부르는 쪽에서)
 function ownCats() {
   if (!db.recs.some(r => r.kind === 'foodcat')) {
-    for (const [i, [id, name]] of BASE_CATS.entries()) db.recs.push({ ...newRec('foodcat', { name, order: i }), id });
+    for (const [i, [id, name, color]] of BASE_CATS.entries()) db.recs.push({ ...newRec('foodcat', { name, color, order: i }), id });
   }
   return recs('foodcat').sort(byOrder);
 }
@@ -196,9 +199,16 @@ function renderStock() {
   const cats = foodCats(), catId = s => (catOf(s, cats) || {}).id || '';
   const rank = new Map(cats.map((c, i) => [c.id, i]));
   const ctx = { cats, rank: s => rank.get(catId(s)) ?? cats.length, dim: s => catSel !== null && catId(s) !== catSel };
+  // 칩 (top = 맨 위 '곧 먹어야 해요' 줄)
+  const chip = (s, top = false) => stockChip(s, item === s && mapSel.top === top, top, catOf(s, cats), ctx.dim(s));
   const counts = [...cats, { id: '', name: '종류 없음' }].map(c => [c, all.filter(s => catId(s) === c.id).length]).filter(([, n]) => n);
   if (catSel !== null && !counts.some(([c]) => c.id === catSel)) catSel = null;
-  $('catPills').replaceChildren(...counts.map(([c, n]) => button(`${c.name} ${n}`, () => { catSel = catSel === c.id ? null : c.id; render(); }, c.id === catSel ? 'on' : '')));
+  $('catPills').replaceChildren(...counts.map(([c, n]) => {
+    const b = button('', () => { catSel = catSel === c.id ? null : c.id; render(); }, c.id === catSel ? 'on' : '');
+    b.append(h('span', 'dot'), `${c.name} ${n}`);
+    b.style.setProperty('--cc', c.id ? catColor(c) : 'transparent');
+    return b;
+  }));
   const out = [];
   // 맨 위: 곧 먹어야 해요 · 기한 지났어요
   const soon = all.filter(isSoon).sort((a, b) => daysLeft(a) - daysLeft(b));
@@ -207,7 +217,7 @@ function renderStock() {
     for (const [title, list] of [['곧 먹어야 해요', soon.filter(s => daysLeft(s) >= 0)], ['기한 지났어요', soon.filter(s => daysLeft(s) < 0)]]) {
       if (!list.length) continue;
       const row = h('div', 'alert-row');
-      row.append(h('span', 'alert-title', title), ...list.map(s => stockChip(s, item === s && mapSel.top, true, ctx.dim(s))));
+      row.append(h('span', 'alert-title', title), ...list.map(s => chip(s, true)));
       box.append(row);
     }
     out.push(box);
@@ -219,7 +229,7 @@ function renderStock() {
   for (const [p, list] of zones) {
     if (!p && !list.length) continue;
     const id = p ? p.id : '', on = selPlace !== undefined && selPlace === id;
-    map.append(placeCard(p, list, item, on ? 'on' : selPlace !== undefined ? 'dim' : '', ctx));
+    map.append(placeCard(p, list, on ? 'on' : selPlace !== undefined ? 'dim' : '', ctx, chip));
     if (on && !item) map.append(placeInfo(p, list));
     else if (on && !mapSel.top) map.append(itemInfo(item)); // 고른 것 바로 아래 (폰에서 멀리 내려가지 않게)
   }
@@ -232,7 +242,7 @@ function renderStock() {
   $('stockList').replaceChildren(...out);
 }
 // 위치 카드: 그림 · 이름 · 개수, 재료 칩 (기본 재료는 '기본 재료 n' 칩을 눌러야 보임, 펼친 곳은 기기별로 기억 prefs.baseOpen)
-function placeCard(p, list, item, state, ctx) {
+function placeCard(p, list, state, ctx, chip) {
   const id = p ? p.id : '', key = id || 'none', open = !!(prefs.baseOpen || {})[key];
   const out = list.filter(s => !hasLeft(s)).length, soon = list.filter(isSoon).length;
   const head = h('div', 'place-head'), name = h('div', 'place-name');
@@ -242,9 +252,8 @@ function placeCard(p, list, item, state, ctx) {
   const card = h('div', `place-card ${p ? '' : 'none'} ${state}`), chips = h('div', 'place-items');
   // 종류 순서대로 모으고, 같은 종류 안에서 다 떨어진 것은 뒤로 (그 다음 가나다)
   const order = xs => [...xs].sort((a, b) => ctx.rank(a) - ctx.rank(b) || hasLeft(b) - hasLeft(a));
-  const chip = s => stockChip(s, item === s && !mapSel.top, false, ctx.dim(s));
   const base = list.filter(s => s.base);
-  chips.append(...order(list.filter(s => !s.base)).map(chip));
+  chips.append(...order(list.filter(s => !s.base)).map(s => chip(s)));
   if (base.length) {
     const fold = h('span', 'item-chip base-fold' + (open ? ' open' : ''), `기본 재료 ${base.length}`);
     fold.title = open ? '기본 재료 접기' : '기본 재료 펼치기 (간장처럼 오래 두는 것)';
@@ -257,7 +266,7 @@ function placeCard(p, list, item, state, ctx) {
       render();
     });
     chips.append(fold);
-    if (open) chips.append(...order(base).map(chip));
+    if (open) chips.append(...order(base).map(s => chip(s)));
   }
   if (!list.length) chips.append(h('span', 'hint', '비어 있어요'));
   card.append(head, chips);
@@ -273,14 +282,15 @@ function placeCard(p, list, item, state, ctx) {
   });
   return card;
 }
-// 재료 칩: 점 색 = 양 (많음·조금·다 떨어짐), 테두리 = 유통기한 (곧·지남). 누르면 아래에 자세히, 다시 누르면 닫기
+// 재료 칩: 점 색 = 재료 종류, 테두리 = 양 (많음 없음 · 조금 꿀색 · 다 떨어짐 점선), 글자 = 유통기한 (곧·지남). 누르면 아래에 자세히, 다시 누르면 닫기
 // 끌어서(폰은 길게 누른 채) 다른 위치 카드에 놓으면 옮김. top = 맨 위 '곧 먹어야 해요' 줄의 칩, dim = 고른 재료 종류가 아님
-function stockChip(s, on, top = false, dim = false) {
+function stockChip(s, on, top, cat, dim) {
   const d = daysLeft(s), due = hasLeft(s) && d !== null && d <= SOON_DAYS ? (d < 0 ? 'over' : 'soon') : '';
   const c = h('span', `item-chip l${s.level} ${due} ${on ? 'on' : ''} ${dim ? 'dim' : ''}`);
+  c.style.setProperty('--cc', catColor(cat));
   c.append(h('span', 'dot'), h('span', '', s.name));
   if (due) c.append(h('span', 'chip-due', dueText(d, s.expiry)));
-  c.title = `${AMOUNTS[s.level]}${s.expiry ? ` · ${dueText(d, s.expiry)}` : ''}${s.memo ? ` · ${s.memo}` : ''} — 끌어서 다른 위치로`;
+  c.title = `${cat ? `${cat.name} · ` : ''}${AMOUNTS[s.level]}${s.expiry ? ` · ${dueText(d, s.expiry)}` : ''}${s.memo ? ` · ${s.memo}` : ''} — 끌어서 다른 위치로`;
   c.addEventListener('click', () => { mapSel = on ? null : { item: s.id, top }; render(); });
   const drop = t => {
     const p = places().find(x => x.id === t.dataset.place);
@@ -482,6 +492,7 @@ $('placesClose').addEventListener('click', () => $('placesDlg').close());
 // ⋮⋮ 끌어서 순서 · ✎ 이름 · ✕ 지우기 (그 재료들은 이름으로 짐작한 종류나 기타로)
 function openFoodCats() {
   $('settings').close();
+  pickingFoodColor = null;
   renderFoodCats();
   $('foodCatsDlg').showModal();
 }
@@ -493,6 +504,7 @@ function changeFoodCat(id, fn) { // 기본 종류도 계정에 저장한 뒤 고
   save();
   renderFoodCats();
 }
+let pickingFoodColor = null; // 색 고르는 중인 종류 id
 function renderFoodCats() {
   const cats = foodCats(), out = [];
   for (const c of cats) {
@@ -504,7 +516,10 @@ function renderFoodCats() {
       save();
       renderFoodCats();
     });
-    row.append(handle, h('span', 'cat-name', c.name), h('span', 'hint', `재료 ${n}`), iconBtn('✎', '이름 바꾸기', async () => {
+    const dot = button('', () => { pickingFoodColor = pickingFoodColor === c.id ? null : c.id; renderFoodCats(); }, 'cat-dot' + (pickingFoodColor === c.id ? ' on' : ''));
+    dot.style.setProperty('--c', catColor(c));
+    dot.title = '색 바꾸기';
+    row.append(handle, dot, h('span', 'cat-name', c.name), h('span', 'hint', `재료 ${n}`), iconBtn('✎', '이름 바꾸기', async () => {
       const name = await ask('재료 종류 이름', c.name);
       if (name && name !== c.name) changeFoodCat(c.id, x => { x.name = name; });
     }), iconBtn('✕', '종류 지우기', () => {
@@ -515,13 +530,23 @@ function renderFoodCats() {
       renderFoodCats();
     }));
     out.push(row);
+    // 색: 노트 카테고리와 같은 팔레트 (설정 › 노트 › 카테고리 편집에서 더하고 지운 것)
+    if (pickingFoodColor === c.id) {
+      const pal = h('div', 'palette');
+      pal.append(...notePalette().map(col => {
+        const d = button('', () => { pickingFoodColor = null; changeFoodCat(c.id, x => { x.color = col; }); }, 'cat-dot' + (col.toLowerCase() === catColor(c).toLowerCase() ? ' on' : ''));
+        d.style.setProperty('--c', col);
+        return d;
+      }));
+      out.push(pal);
+    }
   }
   if (!out.length) out.push(h('p', 'hint', '재료 종류가 없어요.'));
   out.push(button('+ 종류', async () => {
     const name = await ask('새 재료 종류 이름 (예: 반찬)');
     if (!name) return;
-    const list = ownCats();
-    db.recs.push(newRec('foodcat', { name, order: nextOrder(list) }));
+    const list = ownCats(), used = list.map(catColor), pal = notePalette();
+    db.recs.push(newRec('foodcat', { name, color: pal.find(x => !used.includes(x)) || pal[0] || NOTE_COLORS[0], order: nextOrder(list) }));
     save();
     renderFoodCats();
   }));

@@ -718,7 +718,8 @@ textarea:focus { border-color: var(--accent); }
 .stock-add .add-input { margin-top: 0; background: var(--surface); field-sizing: content; resize: none; line-height: 1.4; }
 #stockList { display: flex; flex-direction: column; gap: 12px; }
 .stock-legend { margin: -4px 2px 0; line-height: 1.6; }
-.lg { display: inline-block; margin: 0 3px 1px 4px; }
+.lg { display: inline-block; width: 14px; height: 10px; margin: 0 3px 1px 4px; border: 1.5px solid var(--breakfast); border-radius: 99px; vertical-align: middle; }
+.lg.l0 { border-style: dashed; border-color: var(--faint); }
 /* 유통기한: 곧(3일 이내) = 살구, 지남 = 빨강 */
 .due { padding: 1px 7px; border-radius: 99px; font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .due.soon { background: color-mix(in srgb, var(--snack) 24%, transparent); color: var(--text); font-weight: 600; }
@@ -754,12 +755,12 @@ textarea:focus { border-color: var(--accent); }
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 11px; border: 1.5px solid transparent; border-radius: 99px;
   background: var(--surface); font-size: 13px; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .07); user-select: none; -webkit-touch-callout: none;
 }
-.item-chip .dot, .lg { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--accent)); }
-.item-chip.l1, .lg.l1 { --cc: var(--breakfast); }
-.item-chip.l0 { color: var(--muted); }
-.item-chip.l0 .dot, .lg.l0 { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
-.item-chip.soon { border-color: var(--snack); }
-.item-chip.over { border-color: var(--sun); }
+.item-chip .dot, .cat-pills .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--faint)); }
+.item-chip.l1 { border-color: var(--breakfast); }
+.item-chip.l0 { border-style: dashed; border-color: var(--faint); color: var(--muted); }
+.item-chip.l0 .dot { opacity: .5; }
+.item-chip.soon .chip-due { color: color-mix(in srgb, var(--snack), var(--text) 25%); }
+.cat-pills button { display: inline-flex; align-items: center; gap: 5px; }
 .chip-due { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .item-chip.over .chip-due { color: var(--sun); }
 .item-chip.on { background: color-mix(in srgb, var(--pc, var(--accent)) 35%, var(--surface)); font-weight: 700; }
@@ -971,7 +972,7 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .fridge-tabs button { flex: 1; padding-block: 8px; font-size: 14px; }
   .fridge-view[data-pane="cook"] .stock, .fridge-view[data-pane="stock"] #cookPane { display: none; }
   .stock { overflow: visible; }
-  .place-pills button, .cook-cuisines button, .cat-pills button { padding: 7px 14px; font-size: 13px; }
+  .place-pills button, .cook-cuisines button { padding: 7px 14px; font-size: 13px; }
   .stock-map { margin-inline: -4px; }
   .place-card { padding: 12px; }
   .item-chip { padding: 7px 12px; font-size: 14px; } /* 손가락으로 누르기 쉽게 */
