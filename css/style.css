@@ -64,6 +64,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding: 18px 24px 14px;
 }
 .nav, .tools, .meal-nav { display: flex; align-items: center; gap: 6px; }
+.view-title { margin: 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 .month-title { min-width: 130px; padding: 4px 10px; border: none; border-radius: 9px; background: transparent; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; cursor: pointer; }
 .month-title:hover { background: var(--surface); }
 /* 연·월 고르기 (캘린더x플래너와 같음) */
@@ -90,8 +91,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mp-grid button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .meal-nav .btn { margin-left: 8px; }
 #backBtn { display: none; }
-/* 노트·냉장고는 위 탭으로 보이니 제목 없이 (폰 노트 안에서는 ‹ 뒤로 가기만) */
-body[data-view="notes"] .meal-nav, body[data-view="fridge"] .meal-nav { display: none; }
+body[data-view="notes"] .meal-nav, body[data-view="fridge"] .meal-nav, body[data-view="meals"] .view-title, body[data-view="budget"] .view-title { display: none; }
 
 .btn {
   border: 1px solid var(--line);
@@ -889,6 +889,7 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   body { height: auto; min-height: 100vh; }
   .topbar { padding: 12px 12px 10px; }
   .month-title { min-width: 104px; font-size: 18px; }
+  .view-title { display: none; } /* 폰: 노트·냉장고는 위 탭으로 보이니 제목 없이 (노트 안에서는 ‹ 뒤로 가기만) */
   /* 위 줄: 보기 4개 + 로그인·테마·설정이 360px 폰 한 줄에 들어가게 */
   .tools { gap: 4px; }
   .tools > .btn { padding-inline: 10px; }
