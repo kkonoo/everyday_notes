@@ -937,7 +937,9 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .month-title { min-width: 104px; font-size: 18px; }
   .view-title { display: none; } /* 폰: 노트·냉장고는 위 탭으로 보이니 제목 없이 (노트 안에서는 ‹ 뒤로 가기만) */
   /* 위 줄: 보기 4개 + 로그인·테마·설정이 360px 폰 한 줄에 들어가게 */
-  .tools { gap: 4px; }
+  .tools { flex-grow: 1; gap: 4px; } /* 제목이 없으니 보기 탭은 왼쪽, 로그인·테마·설정은 오른쪽 끝 */
+  #viewSeg { margin-right: auto; }
+  body[data-view="notes"][data-page="list"] .nav, body[data-view="fridge"] .nav { display: none; } /* 빈 왼쪽 칸이 간격만 차지하지 않게 */
   .tools > .btn { padding-inline: 10px; }
   #viewSeg button { padding-inline: 6px; }
   .notes-view, .meals-view, .fridge-view, .budget-view { padding: 0 12px 16px; }
