@@ -608,7 +608,8 @@ function longPress(el, fn) {
 }
 // 버튼 길게 누르기 (0.5초, 터치·마우스 공통) 또는 오른쪽 클릭 → fn.
 // 그 뒤 손을 뗄 때 오는 click·contextmenu(폰은 길게 누르면 옴)는 다음에 누를 때까지 막음 — fn이 다시 그려서 그 자리에 다른 버튼이 와도
-function holdPress(el, fn) {
+// skip = 이 안에서 누른 건 빼기 (예: 냉장고 위치 카드 안의 재료 칩은 칩 끌기)
+function holdPress(el, fn, skip = null) {
   let timer = null;
   const types = ['click', 'contextmenu'], block = e => { e.preventDefault(); e.stopPropagation(); };
   const fire = () => {
@@ -617,9 +618,10 @@ function holdPress(el, fn) {
     addEventListener('pointerdown', () => types.forEach(t => removeEventListener(t, block, true)), { capture: true, once: true });
     fn();
   };
-  el.addEventListener('pointerdown', e => { if (e.button === 0) timer = setTimeout(fire, 500); });
+  const skipped = e => skip && e.target.closest(skip);
+  el.addEventListener('pointerdown', e => { if (e.button === 0 && !skipped(e)) timer = setTimeout(fire, 500); });
   for (const t of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(t, () => clearTimeout(timer));
-  el.addEventListener('contextmenu', e => { e.preventDefault(); fire(); });
+  el.addEventListener('contextmenu', e => { if (skipped(e)) return; e.preventDefault(); fire(); });
 }
 // 항목 이름을 그 자리에서 입력칸으로 (Enter·칸 밖 = 저장, Esc = 취소)
 function editText(li, e) {

@@ -188,7 +188,7 @@ $('fridgeSeg').addEventListener('click', e => {
 });
 
 // 재고: 맨 위 '곧 먹어야 해요'(3일 이내)·'기한 지났어요' 칩, 그 아래 보관 위치 카드 (재료 = 칩)
-// 위치를 누르면 그곳만 진하게 · 재료를 누르면 그 아래에 자세히(양 바꾸기) · 재료를 끌어(폰은 길게 눌러) 다른 위치에 놓으면 옮김
+// 위치를 누르면 그곳만 진하게, 길게 누르면 위치 편집 · 재료를 누르면 그 아래에 자세히(양 바꾸기) · 재료를 끌어(폰은 길게 눌러) 다른 위치에 놓으면 옮김
 let mapSel = null; // 고른 것 (앱을 켜 둔 동안): { place: id | '' (위치 미정) } 또는 { item: id, top: 맨 위 칩에서 골랐는지 }
 let catSel = null; // 진하게 볼 재료 종류 id ('' = 종류 없음, null = 모두)
 function renderStock() {
@@ -230,8 +230,7 @@ function renderStock() {
     if (!p && !list.length) continue;
     const id = p ? p.id : '', on = selPlace !== undefined && selPlace === id;
     map.append(placeCard(p, list, on ? 'on' : selPlace !== undefined ? 'dim' : '', ctx, chip));
-    if (on && !item) map.append(placeInfo(p, list));
-    else if (on && !mapSel.top) map.append(itemInfo(item)); // 고른 것 바로 아래 (폰에서 멀리 내려가지 않게)
+    if (on && item && !mapSel.top) map.append(itemInfo(item)); // 고른 재료 바로 아래 (폰에서 멀리 내려가지 않게)
   }
   map.append(alwaysCard(selPlace !== undefined ? 'dim' : ''));
   const add = button('＋ 위치', () => { addPlaceRec(); }, 'place-card add');
@@ -272,7 +271,8 @@ function placeCard(p, list, state, ctx, chip) {
   card.append(head, chips);
   card.style.setProperty('--pc', p ? typeOf(p).color : 'var(--faint)');
   if (p) card.dataset.place = id; // 재료를 끌어 놓을 곳
-  card.title = '누르면 이곳만';
+  card.title = p ? '누르면 이곳만 (빠른 추가도 이곳으로) · 길게 누르면(PC는 오른쪽 클릭) 위치 편집' : '누르면 이곳만';
+  if (p) holdPress(card, openPlaces, '.item-chip'); // 칩을 길게 누르는 건 칩 끌기
   card.addEventListener('click', e => {
     if (e.target.closest('.item-chip')) return;
     const again = mapSel && !mapSel.item && mapSel.place === id;
@@ -305,7 +305,7 @@ function stockChip(s, on, top, cat, dim) {
   longPress(c, start => dragRow(c, '.place-card[data-place]', drop, start));
   return c;
 }
-// 아래 줄 오른쪽 끝 단추 (고치기·위치 편집): 늘 따로 한 줄
+// 아래 줄 오른쪽 끝 단추 (고치기): 늘 따로 한 줄
 function infoActions(btn) {
   const row = h('div', 'info-actions');
   row.append(btn);
@@ -325,13 +325,6 @@ function itemInfo(s) {
   cat.addEventListener('change', () => { s.cat = cat.value; touch(s); save(); });
   const tags = [p ? p.name : '위치 미정', s.expiry ? dueText(d, s.expiry) : '유통기한 없음', s.base && '기본 재료', s.memo].filter(Boolean);
   box.append(h('b', '', s.name), seg, cat, ...tags.map(t => h('span', 'tag', t)), infoActions(button('고치기', () => openStock(s), 'btn small')));
-  return box;
-}
-// 고른 위치: 종류 · 개수 · 위치 편집
-function placeInfo(p, list) {
-  const box = h('div', 'map-info');
-  box.append(h('b', '', p ? p.name : '위치 미정'), ...(p ? [h('span', 'tag', typeOf(p).label)] : []),
-    h('span', 'hint', `재료 ${list.length}개` + (p ? ' · 위 칸에 적으면 이곳에 들어가요' : '')), infoActions(button('위치 편집', openPlaces, 'btn small')));
   return box;
 }
 // 늘 있는 것: 재고로 세지 않고 늘 있는 걸로 치는 재료 (물·소금 등). 칩을 누르면 빼기, 끝 칸에 적고 Enter면 더하기
