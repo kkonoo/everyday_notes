@@ -313,8 +313,9 @@ function renderNoteCats() {
   $('noteCatManage').replaceChildren(...out);
 }
 // 팔레트의 ＋: 예시(팔레트에 아직 없는 것)를 누르거나 색 코드를 넣어 더하기 → add(색), 바꾼 팔레트는 기본 색으로 되돌리기
+// rerender = 되돌린 뒤 다시 그릴 창 (냉장고 › 재료 종류 편집도 같은 팔레트를 씀)
 const COLOR_IDEAS = ['#C98B6B', '#D4B062', '#6F9C95', '#7F9CB7', '#A88BA8']; // 테라코타·머스터드·틸·더스티 블루·모브
-function colorAdder(add) {
+function colorAdder(add, rerender = renderNoteCats) {
   const box = h('div', 'color-add'), ideas = h('div', 'color-ideas'), row = h('div', 'color-code');
   ideas.append(...COLOR_IDEAS.filter(x => !notePalette().includes(x)).map(col => {
     const d = button('', () => add(col), 'cat-dot');
@@ -339,7 +340,7 @@ function colorAdder(add) {
     if (!confirm('팔레트를 기본 10색으로 되돌릴까요?\n더하거나 지운 색은 원래대로 되고, 카테고리 색은 그대로예요.')) return;
     setNotePalette([...NOTE_COLORS]);
     save();
-    renderNoteCats();
+    rerender();
   }, 'btn small reset'));
   return box;
 }

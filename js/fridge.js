@@ -493,6 +493,7 @@ $('placesClose').addEventListener('click', () => $('placesDlg').close());
 function openFoodCats() {
   $('settings').close();
   pickingFoodColor = null;
+  addingFoodColor = false;
   renderFoodCats();
   $('foodCatsDlg').showModal();
 }
@@ -504,7 +505,7 @@ function changeFoodCat(id, fn) { // 기본 종류도 계정에 저장한 뒤 고
   save();
   renderFoodCats();
 }
-let pickingFoodColor = null; // 색 고르는 중인 종류 id
+let pickingFoodColor = null, addingFoodColor = false; // 색 고르는 중인 종류 id, 팔레트의 ＋(색 더하기)를 펼쳤는지
 function renderFoodCats() {
   const cats = foodCats(), out = [];
   for (const c of cats) {
@@ -516,7 +517,7 @@ function renderFoodCats() {
       save();
       renderFoodCats();
     });
-    const dot = button('', () => { pickingFoodColor = pickingFoodColor === c.id ? null : c.id; renderFoodCats(); }, 'cat-dot' + (pickingFoodColor === c.id ? ' on' : ''));
+    const dot = button('', () => { pickingFoodColor = pickingFoodColor === c.id ? null : c.id; addingFoodColor = false; renderFoodCats(); }, 'cat-dot' + (pickingFoodColor === c.id ? ' on' : ''));
     dot.style.setProperty('--c', catColor(c));
     dot.title = '색 바꾸기';
     row.append(handle, dot, h('span', 'cat-name', c.name), h('span', 'hint', `재료 ${n}`), iconBtn('✎', '이름 바꾸기', async () => {
@@ -530,15 +531,30 @@ function renderFoodCats() {
       renderFoodCats();
     }));
     out.push(row);
-    // 색: 노트 카테고리와 같은 팔레트 (설정 › 노트 › 카테고리 편집에서 더하고 지운 것)
+    // 색: 노트 카테고리와 같은 팔레트, 같은 규칙 (길게 눌러 팔레트에서 지우기, ＋로 예시 색·색 코드 더하기 → 계정에 저장)
     if (pickingFoodColor === c.id) {
-      const pal = h('div', 'palette');
+      const pal = h('div', 'palette'), same = (a, b) => a.toLowerCase() === b.toLowerCase();
+      const pick = col => { pickingFoodColor = null; addingFoodColor = false; changeFoodCat(c.id, x => { x.color = col; }); };
       pal.append(...notePalette().map(col => {
-        const d = button('', () => { pickingFoodColor = null; changeFoodCat(c.id, x => { x.color = col; }); }, 'cat-dot' + (col.toLowerCase() === catColor(c).toLowerCase() ? ' on' : ''));
+        const d = button('', () => pick(col), 'cat-dot' + (same(col, catColor(c)) ? ' on' : ''));
         d.style.setProperty('--c', col);
+        d.title = '길게 누르면 (PC는 오른쪽 클릭도) 팔레트에서 지우기';
+        holdPress(d, () => {
+          if (!confirm('이 색을 팔레트에서 지울까요?\n이 색을 쓰는 종류·카테고리는 그대로예요.')) return;
+          setNotePalette(notePalette().filter(x => x !== col));
+          save();
+          renderFoodCats();
+        });
         return d;
       }));
+      const custom = button('+', () => { addingFoodColor = !addingFoodColor; renderFoodCats(); }, 'cat-dot custom' + (addingFoodColor ? ' on' : ''));
+      custom.title = '색 더하기';
+      pal.append(custom);
       out.push(pal);
+      if (addingFoodColor) out.push(colorAdder(col => {
+        if (!notePalette().some(x => same(x, col))) setNotePalette([...notePalette(), col]);
+        pick(col);
+      }, renderFoodCats));
     }
   }
   if (!out.length) out.push(h('p', 'hint', '재료 종류가 없어요.'));
