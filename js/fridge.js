@@ -413,17 +413,35 @@ $('placesBtn').addEventListener('click', openPlaces);
 $('placesClose').addEventListener('click', () => $('placesDlg').close());
 
 // ---------- 오늘 뭐 해 먹지 ----------
+// 메뉴가 많으면 한정없이 길어지니 종류(한식·양식…, 메뉴·레시피의 종류) 단추를 눌러야 그 종류만 열림 (고른 것은 기기별로 기억 prefs.cookCuisine)
+// 곧 먹어야 하는 재료를 쓰는 메뉴만 맨 위에 늘 보임
 function renderCook() {
   const withIng = menus().filter(m => (m.ingredients || []).length), plans = cookPlans(), out = [];
-  const now = plans.filter(p => !p.missing.length), near = plans.filter(p => p.missing.length);
   const list = ps => {
     const ul = h('ul', 'cook-list');
     ul.append(...ps.map(cookRow));
     return ul;
   };
-  if (now.length) out.push(h('div', 'slot-head', `지금 만들 수 있어요 ${now.length}`), list(now));
-  if (near.length) out.push(h('div', 'slot-head', `1–2개만 있으면 돼요 ${near.length}`), list(near));
-  if (!out.length) {
+  const sections = ps => {
+    const now = ps.filter(p => !p.missing.length), near = ps.filter(p => p.missing.length);
+    if (now.length) out.push(h('div', 'slot-head', `지금 만들 수 있어요 ${now.length}`), list(now));
+    if (near.length) out.push(h('div', 'slot-head', `1–2개만 있으면 돼요 ${near.length}`), list(near));
+  };
+  if (plans.length) {
+    const soon = plans.filter(p => p.soon.length), pills = h('div', 'pills cook-cuisines');
+    const cuisines = [...new Set(plans.map(p => cuisineOf(p.m)))].sort(ranker(CUISINES));
+    const pick = cuisines.includes(prefs.cookCuisine) ? prefs.cookCuisine : null;
+    if (soon.length) out.push(h('div', 'slot-head', `곧 먹어야 하는 재료로 ${soon.length}`), list(soon));
+    pills.append(...cuisines.map(c => button(`${c} ${plans.filter(p => cuisineOf(p.m) === c).length}`, () => {
+      prefs.cookCuisine = c === pick ? null : c; // 다시 누르면 닫기
+      savePrefs();
+      render();
+    }, c === pick ? 'on' : '')));
+    const nNow = plans.filter(p => !p.missing.length).length;
+    out.push(h('div', 'slot-head', `종류별 · 지금 만들 수 있어요 ${nNow} · 1–2개만 ${plans.length - nNow}`), pills);
+    if (pick) sections(plans.filter(p => cuisineOf(p.m) === pick));
+    else out.push(h('p', 'empty', '종류를 누르면 그 종류의 메뉴가 열려요.'));
+  } else {
     out.push(h('p', 'empty', !withIng.length ? '메뉴에 재료를 적어 두면 여기서 골라 줘요. (식단 › 메뉴·레시피에서 메뉴를 눌러 재료 적기)'
       : !stocks().some(hasLeft) ? '재고에 재료를 넣으면 만들 수 있는 메뉴를 보여 줘요.'
       : '지금 재료로 만들 수 있는 메뉴가 없어요.'));
