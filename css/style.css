@@ -763,6 +763,9 @@ textarea:focus { border-color: var(--accent); }
 .chip-due { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .item-chip.over .chip-due { color: var(--sun); }
 .item-chip.on { background: color-mix(in srgb, var(--pc, var(--accent)) 35%, var(--surface)); font-weight: 700; }
+.item-chip.dim { opacity: .3; } /* 고른 재료 종류가 아님 */
+.cat-pills:empty { display: none; }
+select.cat-select { padding: 2px 8px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface-2); font-size: 12px; }
 .item-chip.base-fold { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
 .item-chip.base-fold::after { content: "▸"; font-size: 11px; }
 .item-chip.base-fold.open::after { content: "▾"; }
@@ -968,7 +971,7 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .fridge-tabs button { flex: 1; padding-block: 8px; font-size: 14px; }
   .fridge-view[data-pane="cook"] .stock, .fridge-view[data-pane="stock"] #cookPane { display: none; }
   .stock { overflow: visible; }
-  .place-pills button, .cook-cuisines button { padding: 7px 14px; font-size: 13px; }
+  .place-pills button, .cook-cuisines button, .cat-pills button { padding: 7px 14px; font-size: 13px; }
   .stock-map { margin-inline: -4px; }
   .place-card { padding: 12px; }
   .item-chip { padding: 7px 12px; font-size: 14px; } /* 손가락으로 누르기 쉽게 */

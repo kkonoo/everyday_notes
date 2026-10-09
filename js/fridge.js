@@ -53,6 +53,53 @@ async function addPlaceRec() { // 저장까지
   return p;
 }
 
+// ---------- 재료 종류 (야채·과일·단백질…): 위치 카드 안에서 칩을 종류끼리 모으고, 종류를 누르면 그 종류만 진하게 ----------
+// foodcat rec { name, order }. 처음엔 기본 13가지 — id를 정해 둠 ('fc-…', 보관 위치 id와 겹치지 않게). 설정 › 재료 종류 편집
+// 재료의 종류 = 고른 것(stock.cat), 안 골랐으면 이름으로 짐작(FOOD_WORDS, 저장 안 함), 모르면 기타. 지운 종류였으면 기타
+const BASE_CATS = [['veg', '야채'], ['fruit', '과일'], ['protein', '단백질'], ['carb', '탄수'], ['fiber', '섬유질'], ['sea', '해산물'], ['tea', '차'],
+  ['sauce', '조미료'], ['spice', '향신료'], ['dairy', '유제품'], ['nut', '견과류'], ['powder', '가루'], ['etc', '기타']].map(([k, name]) => [`fc-${k}`, name]);
+// 이름 짐작: 같은 이름이 있으면 그 종류, 없으면 이름 안에 든 가장 긴 낱말의 종류 (한 글자 낱말은 같을 때만: '파' ≠ '양파')
+const FOOD_WORDS = {
+  veg: '양파, 대파, 쪽파, 파, 마늘, 다진마늘, 생강, 고추, 청양고추, 풋고추, 꽈리고추, 홍고추, 피망, 파프리카, 당근, 감자, 고구마, 무, 배추, 알배추, 양배추, 상추, 깻잎, 시금치, 부추, 미나리, 콩나물, 숙주, 오이, 애호박, 호박, 단호박, 가지, 토마토, 방울토마토, 브로콜리, 콜리플라워, 양상추, 셀러리, 아스파라거스, 버섯, 표고버섯, 느타리버섯, 팽이버섯, 새송이버섯, 양송이버섯, 연근, 우엉, 도라지, 고사리, 시래기, 냉이, 달래, 쑥갓, 청경채, 비트, 케일, 루꼴라, 옥수수, 아욱, 쑥',
+  fruit: '사과, 배, 바나나, 딸기, 귤, 오렌지, 레몬, 라임, 포도, 샤인머스캣, 수박, 참외, 복숭아, 자두, 키위, 블루베리, 망고, 파인애플, 감, 단감, 홍시, 체리, 아보카도, 무화과, 석류, 자몽, 멜론, 대추, 건포도, 크랜베리',
+  protein: '계란, 달걀, 메추리알, 두부, 순두부, 연두부, 유부, 돼지고기, 삼겹살, 목살, 앞다리살, 뒷다리살, 항정살, 소고기, 쇠고기, 차돌박이, 불고기, 양지, 사태, 등심, 안심, 닭, 닭고기, 닭가슴살, 닭다리, 닭안심, 닭날개, 오리고기, 고기, 다짐육, 햄, 스팸, 베이컨, 소시지, 어묵, 템페',
+  carb: '쌀, 밥, 찹쌀, 햇반, 떡, 떡국떡, 떡볶이떡, 가래떡, 국수, 소면, 중면, 칼국수, 우동, 라면, 파스타, 스파게티, 펜네, 링귀네, 빵, 식빵, 바게트, 베이글, 또띠아, 시리얼, 당면, 쫄면, 냉면, 쌀국수, 누룽지',
+  fiber: '곤약, 실곤약, 귀리, 오트밀, 현미, 보리, 파로, 퀴노아, 흑미, 콩, 검은콩, 서리태, 병아리콩, 렌틸콩, 강낭콩, 완두콩, 팥, 미역, 다시마, 김, 톳, 매생이, 파래, 치아씨드, 아마씨',
+  sea: '새우, 오징어, 낙지, 문어, 주꾸미, 쭈꾸미, 조개, 바지락, 모시조개, 홍합, 굴, 전복, 게, 꽃게, 대게, 연어, 고등어, 갈치, 삼치, 동태, 명태, 대구, 참치, 멸치, 황태, 북어, 명란, 날치알, 장어, 관자, 가리비, 꽁치, 미더덕, 꼬막, 골뱅이, 맛살, 게맛살',
+  tea: '차, 녹차, 홍차, 보리차, 옥수수차, 둥굴레차, 결명자차, 허브차, 커피, 원두, 루이보스, 캐모마일, 페퍼민트, 티백, 말차',
+  sauce: '소금, 설탕, 흑설탕, 간장, 진간장, 국간장, 양조간장, 된장, 고추장, 쌈장, 춘장, 식초, 올리고당, 물엿, 꿀, 조청, 매실청, 맛술, 미림, 청주, 참기름, 들기름, 식용유, 카놀라유, 포도씨유, 올리브유, 올리브오일, 굴소스, 액젓, 멸치액젓, 까나리액젓, 새우젓, 케첩, 마요네즈, 머스타드, 머스터드, 스리라차, 두반장, 소스, 토마토소스, 파스타소스, 드레싱, 알룰로스, 스테비아, 다시다, 치킨스톡, 쯔유, 우스터소스, 발사믹',
+  spice: '후추, 통후추, 고춧가루, 페페론치노, 월계수잎, 계피, 시나몬, 카레, 카레가루, 커민, 큐민, 파프리카가루, 강황, 정향, 팔각, 산초, 로즈마리, 타임, 오레가노, 넛맥, 와사비, 겨자, 깨, 참깨, 통깨, 들깨, 허브, 칠리파우더, 마살라',
+  dairy: '우유, 치즈, 모짜렐라, 모짜렐라치즈, 체다, 체다치즈, 파마산, 브리, 크림치즈, 리코타, 버터, 무염버터, 생크림, 휘핑크림, 요거트, 요구르트, 그릭요거트, 연유, 사워크림, 두유',
+  nut: '아몬드, 호두, 땅콩, 캐슈넛, 피스타치오, 잣, 마카다미아, 피칸, 헤이즐넛, 밤, 해바라기씨, 호박씨, 견과, 땅콩버터',
+  powder: '밀가루, 박력분, 중력분, 강력분, 부침가루, 튀김가루, 빵가루, 전분, 감자전분, 옥수수전분, 찹쌀가루, 쌀가루, 베이킹파우더, 베이킹소다, 코코아파우더, 카카오파우더, 들깨가루, 콩가루, 미숫가루, 파우더, 가루, 이스트',
+};
+const foodCats = () => (db.recs.some(r => r.kind === 'foodcat') ? recs('foodcat').sort(byOrder)
+  : BASE_CATS.map(([id, name], order) => ({ id, name, order })));
+// 고치기 전에: 기본 종류를 계정에 저장해 두고 rec 목록을 돌려줌 (저장은 부르는 쪽에서)
+function ownCats() {
+  if (!db.recs.some(r => r.kind === 'foodcat')) {
+    for (const [i, [id, name]] of BASE_CATS.entries()) db.recs.push({ ...newRec('foodcat', { name, order: i }), id });
+  }
+  return recs('foodcat').sort(byOrder);
+}
+let wordCat = null; // 낱말 → 종류 id (처음 쓸 때 만듦)
+function guessCat(name) {
+  if (!wordCat) {
+    wordCat = new Map();
+    for (const [k, v] of Object.entries(FOOD_WORDS)) for (const w of v.split(',')) wordCat.set(norm(w), `fc-${k}`);
+  }
+  const n = norm(name);
+  if (wordCat.has(n)) return wordCat.get(n);
+  let best = '';
+  for (const w of wordCat.keys()) if (w.length > 1 && w.length > best.length && n.includes(w)) best = w;
+  return best ? wordCat.get(best) : 'fc-etc';
+}
+// 재료의 종류 rec (종류를 다 지웠으면 null = 종류 없음)
+function catOf(s, cats = foodCats()) {
+  const by = id => cats.find(c => c.id === id);
+  return by(s.cat) || by(guessCat(s.name)) || by('fc-etc') || null;
+}
+
 // ---------- 설정: 늘 있는 재료(재고에 없어도 있는 걸로), 같은 재료(이름이 달라도 같은 재료로 칠 묶음) ----------
 // 냉장고 화면에서 고침 (늘 있는 것 카드, 뭐 해 먹지의 같은 재료). 계정에 저장 (id 고정 rec 하나). 고친 적 없으면 기본값
 const FRIDGE_ID = 'fridge';
@@ -140,10 +187,18 @@ $('fridgeSeg').addEventListener('click', e => {
 // 재고: 맨 위 '곧 먹어야 해요'(3일 이내)·'기한 지났어요' 칩, 그 아래 보관 위치 카드 (재료 = 칩)
 // 위치를 누르면 그곳만 진하게 · 재료를 누르면 그 아래에 자세히(양 바꾸기) · 재료를 끌어(폰은 길게 눌러) 다른 위치에 놓으면 옮김
 let mapSel = null; // 고른 것 (앱을 켜 둔 동안): { place: id | '' (위치 미정) } 또는 { item: id, top: 맨 위 칩에서 골랐는지 }
+let catSel = null; // 진하게 볼 재료 종류 id ('' = 종류 없음, null = 모두)
 function renderStock() {
   const all = stocks(), item = mapSel && mapSel.item ? all.find(s => s.id === mapSel.item) : null;
   const ps = places(), ids = new Set(ps.map(p => p.id)), where = s => (ids.has(s.place) ? s.place : '');
   const selPlace = item ? where(item) : mapSel && 'place' in mapSel ? mapSel.place : undefined; // undefined = 고른 것 없음
+  // 재료 종류: 칩 순서 = 종류 순서, 종류 단추를 누르면 그 종류만 진하게 (다시 누르면 모두)
+  const cats = foodCats(), catId = s => (catOf(s, cats) || {}).id || '';
+  const rank = new Map(cats.map((c, i) => [c.id, i]));
+  const ctx = { cats, rank: s => rank.get(catId(s)) ?? cats.length, dim: s => catSel !== null && catId(s) !== catSel };
+  const counts = [...cats, { id: '', name: '종류 없음' }].map(c => [c, all.filter(s => catId(s) === c.id).length]).filter(([, n]) => n);
+  if (catSel !== null && !counts.some(([c]) => c.id === catSel)) catSel = null;
+  $('catPills').replaceChildren(...counts.map(([c, n]) => button(`${c.name} ${n}`, () => { catSel = catSel === c.id ? null : c.id; render(); }, c.id === catSel ? 'on' : '')));
   const out = [];
   // 맨 위: 곧 먹어야 해요 · 기한 지났어요
   const soon = all.filter(isSoon).sort((a, b) => daysLeft(a) - daysLeft(b));
@@ -152,7 +207,7 @@ function renderStock() {
     for (const [title, list] of [['곧 먹어야 해요', soon.filter(s => daysLeft(s) >= 0)], ['기한 지났어요', soon.filter(s => daysLeft(s) < 0)]]) {
       if (!list.length) continue;
       const row = h('div', 'alert-row');
-      row.append(h('span', 'alert-title', title), ...list.map(s => stockChip(s, item === s && mapSel.top, true)));
+      row.append(h('span', 'alert-title', title), ...list.map(s => stockChip(s, item === s && mapSel.top, true, ctx.dim(s))));
       box.append(row);
     }
     out.push(box);
@@ -164,7 +219,7 @@ function renderStock() {
   for (const [p, list] of zones) {
     if (!p && !list.length) continue;
     const id = p ? p.id : '', on = selPlace !== undefined && selPlace === id;
-    map.append(placeCard(p, list, item, on ? 'on' : selPlace !== undefined ? 'dim' : ''));
+    map.append(placeCard(p, list, item, on ? 'on' : selPlace !== undefined ? 'dim' : '', ctx));
     if (on && !item) map.append(placeInfo(p, list));
     else if (on && !mapSel.top) map.append(itemInfo(item)); // 고른 것 바로 아래 (폰에서 멀리 내려가지 않게)
   }
@@ -177,7 +232,7 @@ function renderStock() {
   $('stockList').replaceChildren(...out);
 }
 // 위치 카드: 그림 · 이름 · 개수, 재료 칩 (기본 재료는 '기본 재료 n' 칩을 눌러야 보임, 펼친 곳은 기기별로 기억 prefs.baseOpen)
-function placeCard(p, list, item, state) {
+function placeCard(p, list, item, state, ctx) {
   const id = p ? p.id : '', key = id || 'none', open = !!(prefs.baseOpen || {})[key];
   const out = list.filter(s => !hasLeft(s)).length, soon = list.filter(isSoon).length;
   const head = h('div', 'place-head'), name = h('div', 'place-name');
@@ -185,10 +240,11 @@ function placeCard(p, list, item, state) {
     h('small', '', [`${list.length}개`, soon && `곧 ${soon}`, out && `다 떨어짐 ${out}`].filter(Boolean).join(' · ')));
   head.append(placeIcon(p), name);
   const card = h('div', `place-card ${p ? '' : 'none'} ${state}`), chips = h('div', 'place-items');
-  // 다 떨어진 것은 뒤로
-  const order = xs => [...xs.filter(hasLeft), ...xs.filter(s => !hasLeft(s))];
+  // 종류 순서대로 모으고, 같은 종류 안에서 다 떨어진 것은 뒤로 (그 다음 가나다)
+  const order = xs => [...xs].sort((a, b) => ctx.rank(a) - ctx.rank(b) || hasLeft(b) - hasLeft(a));
+  const chip = s => stockChip(s, item === s && !mapSel.top, false, ctx.dim(s));
   const base = list.filter(s => s.base);
-  chips.append(...order(list.filter(s => !s.base)).map(s => stockChip(s, item === s && !mapSel.top)));
+  chips.append(...order(list.filter(s => !s.base)).map(chip));
   if (base.length) {
     const fold = h('span', 'item-chip base-fold' + (open ? ' open' : ''), `기본 재료 ${base.length}`);
     fold.title = open ? '기본 재료 접기' : '기본 재료 펼치기 (간장처럼 오래 두는 것)';
@@ -201,7 +257,7 @@ function placeCard(p, list, item, state) {
       render();
     });
     chips.append(fold);
-    if (open) chips.append(...order(base).map(s => stockChip(s, item === s && !mapSel.top)));
+    if (open) chips.append(...order(base).map(chip));
   }
   if (!list.length) chips.append(h('span', 'hint', '비어 있어요'));
   card.append(head, chips);
@@ -218,10 +274,10 @@ function placeCard(p, list, item, state) {
   return card;
 }
 // 재료 칩: 점 색 = 양 (많음·조금·다 떨어짐), 테두리 = 유통기한 (곧·지남). 누르면 아래에 자세히, 다시 누르면 닫기
-// 끌어서(폰은 길게 누른 채) 다른 위치 카드에 놓으면 옮김. top = 맨 위 '곧 먹어야 해요' 줄의 칩
-function stockChip(s, on, top = false) {
+// 끌어서(폰은 길게 누른 채) 다른 위치 카드에 놓으면 옮김. top = 맨 위 '곧 먹어야 해요' 줄의 칩, dim = 고른 재료 종류가 아님
+function stockChip(s, on, top = false, dim = false) {
   const d = daysLeft(s), due = hasLeft(s) && d !== null && d <= SOON_DAYS ? (d < 0 ? 'over' : 'soon') : '';
-  const c = h('span', `item-chip l${s.level} ${due} ${on ? 'on' : ''}`);
+  const c = h('span', `item-chip l${s.level} ${due} ${on ? 'on' : ''} ${dim ? 'dim' : ''}`);
   c.append(h('span', 'dot'), h('span', '', s.name));
   if (due) c.append(h('span', 'chip-due', dueText(d, s.expiry)));
   c.title = `${AMOUNTS[s.level]}${s.expiry ? ` · ${dueText(d, s.expiry)}` : ''}${s.memo ? ` · ${s.memo}` : ''} — 끌어서 다른 위치로`;
@@ -245,12 +301,20 @@ function infoActions(btn) {
   row.append(btn);
   return row;
 }
-// 고른 재료: 양 단추(바로 바뀜) · 위치 · 유통기한 · 메모 · 고치기
+// 재료 종류 고르는 칸 (지금 종류가 골라져 있음). 바꾸면 그 재료에 저장
+function catSelect(sel, s) {
+  const cats = foodCats(), cur = catOf(s, cats);
+  fillSelect(sel, [...cats.map(c => [c.id, c.name]), ...(cur ? [] : [['', '종류 없음']])], cur ? cur.id : '');
+}
+// 고른 재료: 양 단추(바로 바뀜) · 종류(바로 바뀜) · 위치 · 유통기한 · 메모 · 고치기
 function itemInfo(s) {
-  const box = h('div', 'map-info'), seg = h('div', 'seg level-seg'), d = daysLeft(s), p = placeOf(s);
+  const box = h('div', 'map-info'), seg = h('div', 'seg level-seg'), d = daysLeft(s), p = placeOf(s), cat = h('select', 'tag cat-select');
   for (const l of [2, 1, 0]) seg.append(button(AMOUNTS[l], () => { setLevel(s, l); save(); }, s.level === l ? 'on' : ''));
+  catSelect(cat, s);
+  cat.title = '재료 종류';
+  cat.addEventListener('change', () => { s.cat = cat.value; touch(s); save(); });
   const tags = [p ? p.name : '위치 미정', s.expiry ? dueText(d, s.expiry) : '유통기한 없음', s.base && '기본 재료', s.memo].filter(Boolean);
-  box.append(h('b', '', s.name), seg, ...tags.map(t => h('span', 'tag', t)), infoActions(button('고치기', () => openStock(s), 'btn small')));
+  box.append(h('b', '', s.name), seg, cat, ...tags.map(t => h('span', 'tag', t)), infoActions(button('고치기', () => openStock(s), 'btn small')));
   return box;
 }
 // 고른 위치: 종류 · 개수 · 위치 편집
@@ -317,6 +381,7 @@ function openStock(s) {
   editingStock = s;
   stockForm.name.value = s.name;
   fillSelect(stockForm.place, [...places().map(p => [p.id, p.name]), ['', '위치 미정']], placeOf(s) ? s.place : '');
+  catSelect(stockForm.cat, s);
   stockForm.expiry.value = s.expiry || '';
   stockForm.memo.value = s.memo || '';
   stockForm.base.checked = !!s.base;
@@ -333,6 +398,7 @@ stockForm.addEventListener('submit', e => {
   const s = editingStock;
   s.name = stockForm.name.value.trim() || s.name;
   s.place = stockForm.place.value;
+  if (stockForm.cat.value !== ((catOf(s) || {}).id || '')) s.cat = stockForm.cat.value; // 안 바꿨으면 짐작한 종류 그대로 (저장 안 함)
   s.level = stockLevel;
   s.expiry = stockForm.expiry.value;
   s.memo = stockForm.memo.value.trim();
@@ -411,6 +477,58 @@ function renderPlaces() {
 }
 $('placesBtn').addEventListener('click', openPlaces);
 $('placesClose').addEventListener('click', () => $('placesDlg').close());
+
+// ---------- 재료 종류 편집 (설정 › 냉장고): 보관 위치 편집과 같은 모양 ----------
+// ⋮⋮ 끌어서 순서 · ✎ 이름 · ✕ 지우기 (그 재료들은 이름으로 짐작한 종류나 기타로)
+function openFoodCats() {
+  $('settings').close();
+  renderFoodCats();
+  $('foodCatsDlg').showModal();
+}
+function changeFoodCat(id, fn) { // 기본 종류도 계정에 저장한 뒤 고침
+  const c = ownCats().find(x => x.id === id);
+  if (!c) return;
+  fn(c);
+  touch(c);
+  save();
+  renderFoodCats();
+}
+function renderFoodCats() {
+  const cats = foodCats(), out = [];
+  for (const c of cats) {
+    const n = stocks().filter(s => catOf(s, cats) === c).length, row = h('div', 'row place-row'), handle = dragHandle();
+    row.dataset.id = c.id;
+    sortable(handle, row, '#foodCatManage .place-row', (t, before) => {
+      const list = ownCats();
+      reorder(list, list.find(x => x.id === c.id), list.find(x => x.id === t.dataset.id), before);
+      save();
+      renderFoodCats();
+    });
+    row.append(handle, h('span', 'cat-name', c.name), h('span', 'hint', `재료 ${n}`), iconBtn('✎', '이름 바꾸기', async () => {
+      const name = await ask('재료 종류 이름', c.name);
+      if (name && name !== c.name) changeFoodCat(c.id, x => { x.name = name; });
+    }), iconBtn('✕', '종류 지우기', () => {
+      if (!confirm(`‘${c.name}’ 종류를 지울까요?` + (n ? `\n재료 ${n}개는 이름으로 짐작한 종류나 ‘기타’로 가요.` : ''))) return;
+      ownCats();
+      remove(recs('foodcat').find(x => x.id === c.id));
+      save();
+      renderFoodCats();
+    }));
+    out.push(row);
+  }
+  if (!out.length) out.push(h('p', 'hint', '재료 종류가 없어요.'));
+  out.push(button('+ 종류', async () => {
+    const name = await ask('새 재료 종류 이름 (예: 반찬)');
+    if (!name) return;
+    const list = ownCats();
+    db.recs.push(newRec('foodcat', { name, order: nextOrder(list) }));
+    save();
+    renderFoodCats();
+  }));
+  $('foodCatManage').replaceChildren(...out);
+}
+$('foodCatsBtn').addEventListener('click', openFoodCats);
+$('foodCatsClose').addEventListener('click', () => $('foodCatsDlg').close());
 
 // ---------- 오늘 뭐 해 먹지 ----------
 // 메뉴가 많으면 한정없이 길어지니 종류(한식·양식…, 메뉴·레시피의 종류) 단추를 눌러야 그 종류만 열림 (고른 것은 기기별로 기억 prefs.cookCuisine)

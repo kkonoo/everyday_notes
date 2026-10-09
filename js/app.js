@@ -26,7 +26,8 @@ const fmtMD = s => { const [, m, d] = ymd(s); return `${m}/${d}`; };
 //   tags: { hidden: [] }   id = 'menu-tags' — 설정에서 지운 기본 태그 (편집 창 목록에서 뺌)
 //   notecat: { name, color, order }   노트에 붙이는 내 카테고리 (note.cat = id). 노트 색 = 카테고리 색, 없으면 종류 색
 //   palette: { colors: [] }   id = 'note-colors' — 카테고리 색 팔레트 (＋로 더하고 길게 눌러 지운 것. 없으면 NOTE_COLORS)
-//   stock: { name, place (보관 위치 id, 없으면 위치 미정), level: 2|1|0 (많음·조금·다 떨어짐), expiry: 'YYYY-MM-DD'|'', memo, base }   냉장고 재고 (base = 기본 재료: 위치 카드에서 접힘)
+//   stock: { name, place (보관 위치 id, 없으면 위치 미정), cat (재료 종류 id, 없으면 이름으로 짐작), level: 2|1|0 (많음·조금·다 떨어짐), expiry: 'YYYY-MM-DD'|'', memo, base }   냉장고 재고 (base = 기본 재료: 위치 카드에서 접힘)
+//   foodcat: { name, order }   재료 종류 (야채·단백질…). 하나도 없으면 기본 13가지 (id 'fc-veg' 등, fridge.js)
 //   place: { name, type: 'fridge'|'freezer'|'room'|'sauce' (그림·색), order }   보관 위치. 하나도 없으면 기본 4곳 (id 'cold'·'frozen'·'room'·'sauce', fridge.js)
 //   fridge: { always: [], aliases: [[이름, 이름…]] }   id = 'fridge' — 늘 있는 재료, 같은 재료로 칠 이름 묶음 (냉장고 화면에서 고침. 없으면 fridge.js 기본값)
 //   bline: { side: 'in'|'out'|'save' (수입·지출·저축), group (지출 분류 id), account (통장 id), name, plans: { 'YYYY-MM': 금액 }, actual: { 달: 금액 }, fixed, from, to, order }   가계부 예산 항목

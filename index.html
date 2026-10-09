@@ -117,6 +117,7 @@
       <textarea class="add-input" id="stockInput" rows="1" placeholder="+ 재료 추가 (쉼표·줄바꿈으로 여러 개)" autocomplete="off"></textarea>
     </div>
     <p class="hint stock-legend"><span class="lg l2"></span>많음 <span class="lg l1"></span>조금 <span class="lg l0"></span>다 떨어짐 · 재료를 누르면 아래에 자세히 · 끌어서(폰은 길게 눌러) 다른 위치에 놓으면 옮겨져요</p>
+    <div class="pills cat-pills" id="catPills" title="누르면 그 종류만 진하게 (다시 누르면 모두)"></div>
     <div id="stockList"></div>
   </section>
   <div class="splitter" data-split="fridge" title="끌어서 너비 조절 (두 번 누르면 원래대로)"></div>
@@ -329,6 +330,7 @@
   <form id="stockForm">
     <input name="name" class="title-input" placeholder="재료 이름" required autocomplete="off">
     <div class="row"><label>위치</label><select name="place"></select></div>
+    <div class="row"><label>종류</label><select name="cat"></select></div>
     <div class="row">
       <label>양</label>
       <div class="seg" id="stockLevelSeg">
@@ -376,6 +378,13 @@
   <p class="hint">⋮⋮ 끌어서 순서 바꾸기 · 그림을 눌러 종류(그림·색) 바꾸기 · ✎ 이름 바꾸기 · ✕ 지우기 (그 재료들은 ‘위치 미정’으로 남아요)</p>
   <div id="placeManage"></div>
   <div class="dialog-actions"><span class="spacer"></span><button type="button" class="btn primary" id="placesClose">닫기</button></div>
+</dialog>
+
+<dialog id="foodCatsDlg">
+  <h2>재료 종류</h2>
+  <p class="hint">재고의 위치 카드 안에서 칩이 이 순서로 모여요. 고르지 않은 재료는 이름으로 짐작해요 (모르면 기타). ⋮⋮ 끌어서 순서 바꾸기 · ✎ 이름 바꾸기 · ✕ 지우기</p>
+  <div id="foodCatManage"></div>
+  <div class="dialog-actions"><span class="spacer"></span><button type="button" class="btn primary" id="foodCatsClose">닫기</button></div>
 </dialog>
 
 <dialog id="lineEditor">
@@ -479,6 +488,10 @@
   <div class="row">
     <button class="btn" id="placesBtn">보관 위치 편집</button>
     <span class="hint">냉장고·냉동고 같은 위치 이름·그림·순서 바꾸기, 추가·지우기</span>
+  </div>
+  <div class="row">
+    <button class="btn" id="foodCatsBtn">재료 종류 편집</button>
+    <span class="hint">야채·단백질 같은 재료 종류 이름·순서 바꾸기, 추가·지우기</span>
   </div>
 
   <h2>백업</h2>
