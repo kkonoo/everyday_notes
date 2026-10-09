@@ -113,14 +113,10 @@
   </div>
   <section class="stock">
     <div class="stock-add">
-      <div class="seg" id="placeSeg">
-        <button type="button" data-place="cold">냉장</button>
-        <button type="button" data-place="frozen">냉동</button>
-        <button type="button" data-place="room">실온</button>
-        <button type="button" data-place="sauce">조미료</button>
-      </div>
+      <div class="pills place-pills" id="placePills" title="새 재료를 넣을 곳"></div>
       <textarea class="add-input" id="stockInput" rows="1" placeholder="+ 재료 추가 (쉼표·줄바꿈으로 여러 개)" autocomplete="off"></textarea>
     </div>
+    <p class="hint stock-legend"><span class="lg l2"></span>많음 <span class="lg l1"></span>조금 <span class="lg l0"></span>다 떨어짐 · 재료를 누르면 아래에 자세히 · 끌어서(폰은 길게 눌러) 다른 위치에 놓으면 옮겨져요</p>
     <div id="stockList"></div>
   </section>
   <div class="splitter" data-split="fridge" title="끌어서 너비 조절 (두 번 누르면 원래대로)"></div>
@@ -131,6 +127,14 @@
         <span class="count" id="cookCount"></span>
       </div>
       <div id="cookList"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>같은 재료</h2>
+        <span class="count">이름이 달라도 같은 재료로 쳐요</span>
+      </div>
+      <div class="pills" id="aliasList"></div>
+      <input class="add-input" id="aliasInput" placeholder="+ 예: 달걀 = 계란" autocomplete="off">
     </section>
   </aside>
 </main>
@@ -324,15 +328,7 @@
 <dialog id="stockEditor">
   <form id="stockForm">
     <input name="name" class="title-input" placeholder="재료 이름" required autocomplete="off">
-    <div class="row">
-      <label>위치</label>
-      <div class="seg" id="stockPlaceSeg">
-        <button type="button" data-place="cold">냉장</button>
-        <button type="button" data-place="frozen">냉동</button>
-        <button type="button" data-place="room">실온</button>
-        <button type="button" data-place="sauce">조미료</button>
-      </div>
-    </div>
+    <div class="row"><label>위치</label><select name="place"></select></div>
     <div class="row">
       <label>양</label>
       <div class="seg" id="stockLevelSeg">
@@ -343,7 +339,7 @@
     </div>
     <div class="row"><label>유통기한</label><input name="expiry" type="date" class="text-input"></div>
     <div class="row"><label>메모</label><input name="memo" class="text-input" autocomplete="off"></div>
-    <label class="check-row"><input type="checkbox" name="base"> 기본 재료 <span class="hint">간장·고추장처럼 오래 두는 것. 목록 아래 ‘기본 재료’ 줄 안에 접혀 있어요</span></label>
+    <label class="check-row"><input type="checkbox" name="base"> 기본 재료 <span class="hint">간장·고추장처럼 오래 두는 것. 위치 카드의 ‘기본 재료’ 칩 안에 접혀 있어요</span></label>
     <div class="dialog-actions">
       <button type="button" class="btn danger" id="stockDelBtn">삭제</button>
       <span class="spacer"></span>
@@ -373,6 +369,13 @@
     <button type="button" class="btn" id="cookedCancel">취소</button>
     <button type="button" class="btn primary" id="cookedOk">오늘 식단에 기록</button>
   </div>
+</dialog>
+
+<dialog id="placesDlg">
+  <h2>보관 위치</h2>
+  <p class="hint">⋮⋮ 끌어서 순서 바꾸기 · 그림을 눌러 종류(그림·색) 바꾸기 · ✎ 이름 바꾸기 · ✕ 지우기 (그 재료들은 ‘위치 미정’으로 남아요)</p>
+  <div id="placeManage"></div>
+  <div class="dialog-actions"><span class="spacer"></span><button type="button" class="btn primary" id="placesClose">닫기</button></div>
 </dialog>
 
 <dialog id="lineEditor">
@@ -473,13 +476,10 @@
   </div>
 
   <h2>냉장고</h2>
-  <div class="row wide">
-    <label>항상 있는 재료</label>
-    <input id="alwaysInput" class="text-input" placeholder="쉼표로 나눠 적기 (예: 물, 소금)" autocomplete="off">
+  <div class="row">
+    <button class="btn" id="placesBtn">보관 위치 편집</button>
+    <span class="hint">냉장고·냉동고 같은 위치 이름·그림·순서 바꾸기, 추가·지우기</span>
   </div>
-  <p class="hint">재고에 없어도 있는 걸로 쳐요.</p>
-  <label class="field-label">별칭 <span class="hint">같은 재료로 칠 이름을 한 줄에 하나씩 (예: 달걀 = 계란)</span></label>
-  <textarea id="aliasText" rows="3"></textarea>
 
   <h2>백업</h2>
   <div class="row">

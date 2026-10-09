@@ -714,28 +714,74 @@ textarea:focus { border-color: var(--accent); }
 .fridge-tabs { display: none; } /* 폰에서만: 재고 ↔ 뭐 해 먹지 */
 .stock { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
 .stock > * { flex: none; }
-.stock-add { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.stock-add { display: flex; flex-direction: column; gap: 8px; }
 .stock-add .add-input { margin-top: 0; background: var(--surface); field-sizing: content; resize: none; line-height: 1.4; }
 #stockList { display: flex; flex-direction: column; gap: 12px; }
-.stock-sec .sec-head { cursor: default; }
-.stock-sec.soon { border-color: color-mix(in srgb, var(--snack) 55%, var(--line)); }
-.stock-sec.over { border-color: color-mix(in srgb, var(--sun) 45%, var(--line)); }
-.stock-row.out .text { color: var(--muted); }
-.stock-memo { flex: 0 1 40%; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; color: var(--muted); }
-.stock-place { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.stock-legend { margin: -4px 2px 0; line-height: 1.6; }
+.lg { display: inline-block; margin: 0 3px 1px 4px; }
 /* 유통기한: 곧(3일 이내) = 살구, 지남 = 빨강 */
 .due { padding: 1px 7px; border-radius: 99px; font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .due.soon { background: color-mix(in srgb, var(--snack) 24%, transparent); color: var(--text); font-weight: 600; }
 .due.over { background: color-mix(in srgb, var(--sun) 14%, transparent); color: var(--sun); font-weight: 600; }
-/* 양: 한 번 누를 때마다 많음 → 조금 → 다 떨어짐 */
-.level { flex: none; min-width: 76px; padding: 6px 10px; border: 1px solid transparent; border-radius: 99px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.level.l2 { background: var(--accent-soft); color: var(--accent); }
-.level.l1 { background: color-mix(in srgb, var(--breakfast) 24%, transparent); color: var(--text); }
-.level.l0 { background: transparent; border: 1px dashed var(--line); color: var(--faint); font-weight: 500; }
-.base-head { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 6px 4px; border-radius: 8px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
-.base-head:hover { background: var(--surface-2); }
-.base-head .fold { width: 14px; color: var(--faint); font-size: 12px; transition: transform .15s; }
-.base-head.folded .fold { transform: rotate(-90deg); }
+/* 맨 위: 곧 먹어야 해요 · 기한 지났어요 */
+.stock-alert { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1.5px solid color-mix(in srgb, var(--snack) 55%, var(--line)); border-radius: var(--radius); background: var(--surface); }
+.alert-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.alert-title { margin-right: 4px; font-size: 13px; font-weight: 700; }
+/* 보관 위치 카드 (lab-manager 재고 › 보관 위치와 같은 모양): 위치 = 색 칸 하나(선 그림 + 재료 칩) */
+.stock-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); grid-auto-flow: dense; gap: 12px; }
+.place-card {
+  --pc: var(--faint);
+  display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1.5px solid transparent; border-radius: var(--radius);
+  background: color-mix(in srgb, var(--pc) 14%, var(--surface)); cursor: pointer; transition: opacity .15s, border-color .15s;
+}
+.place-card:hover { border-color: color-mix(in srgb, var(--pc) 45%, transparent); }
+.place-card.on { border-color: var(--pc); }
+.place-card.dim { opacity: .4; }
+.place-card.none, .place-card.always { border: 1.5px dashed var(--line); background: transparent; cursor: default; }
+.place-card.add { align-items: center; justify-content: center; min-height: 60px; border: 1.5px dashed var(--line); background: transparent; color: var(--muted); font-size: 14px; }
+.place-card.add:hover { border-color: var(--accent); color: var(--accent); }
+.place-card.drop-before, .place-card.drop-after { border-style: dashed; border-color: var(--pc); box-shadow: none !important; opacity: 1; }
+.place-head { display: flex; align-items: center; gap: 10px; }
+.place-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--pc) 30%, var(--surface)); color: color-mix(in srgb, var(--pc) 65%, var(--text)); font-weight: 700; }
+.place-icon svg { width: 26px; height: 26px; }
+.place-name { display: grid; min-width: 0; }
+.place-name b { font-size: 15px; }
+.place-name small { font-size: 12px; color: var(--muted); }
+.place-items { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* 재료 칩: 점 = 양 (많음 초록 · 조금 꿀색 · 다 떨어짐 빈 점), 테두리 = 유통기한 (곧 살구 · 지남 빨강) */
+.item-chip {
+  --cc: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 11px; border: 1.5px solid transparent; border-radius: 99px;
+  background: var(--surface); font-size: 13px; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .07); user-select: none; -webkit-touch-callout: none;
+}
+.item-chip .dot, .lg { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc, var(--accent)); }
+.item-chip.l1, .lg.l1 { --cc: var(--breakfast); }
+.item-chip.l0 { color: var(--muted); }
+.item-chip.l0 .dot, .lg.l0 { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
+.item-chip.soon { border-color: var(--snack); }
+.item-chip.over { border-color: var(--sun); }
+.chip-due { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item-chip.over .chip-due { color: var(--sun); }
+.item-chip.on { background: color-mix(in srgb, var(--pc, var(--accent)) 35%, var(--surface)); font-weight: 700; }
+.item-chip.base-fold { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.item-chip.base-fold::after { content: "▸"; font-size: 11px; }
+.item-chip.base-fold.open::after { content: "▾"; }
+.item-chip.always { cursor: pointer; }
+.chip-add { width: 90px; padding: 5px 11px; border: 1px dashed var(--line); border-radius: 99px; background: transparent; font-size: 13px; outline: none; }
+.chip-add:focus { border-color: var(--accent); }
+/* 고른 재료·위치: 그 카드 바로 아래 한 줄 */
+.map-info { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); font-size: 13.5px; }
+.map-info > b { font-size: 15px; }
+.map-info .tag { padding: 2px 9px; border-radius: 99px; background: var(--surface-2); font-size: 12px; }
+.level-seg button { padding-inline: 10px; }
+/* 보관 위치 편집 창: 그림 단추 = 종류 고르기 */
+.place-row { margin: 4px 0; }
+.place-row .cat-name { flex: 1; min-width: 0; }
+.type-btn { --pc: var(--faint); display: inline-flex; align-items: center; gap: 6px; padding: 0; border: none; border-radius: 99px; background: transparent; cursor: pointer; }
+.type-btn .place-icon { width: 34px; height: 34px; }
+.type-btn .place-icon svg { width: 22px; height: 22px; }
+.type-btn.on .place-icon { outline: 2px solid var(--text); outline-offset: 2px; }
+.type-pick-row { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 2px 0 12px 23px; font-size: 13px; }
 /* 오늘 뭐 해 먹지 */
 .cook-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .cook-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 4px 8px 8px; border-radius: 8px; }
@@ -918,9 +964,11 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .fridge-tabs button { flex: 1; padding-block: 8px; font-size: 14px; }
   .fridge-view[data-pane="cook"] .stock, .fridge-view[data-pane="stock"] #cookPane { display: none; }
   .stock { overflow: visible; }
-  .stock-add .seg { align-self: stretch; }
-  .stock-add .seg button { flex: 1; padding-block: 7px; }
-  .level { min-width: 84px; padding: 8px 12px; font-size: 14px; }
+  .place-pills button { padding: 7px 14px; font-size: 13px; }
+  .stock-map { margin-inline: -4px; }
+  .place-card { padding: 12px; }
+  .item-chip { padding: 7px 12px; font-size: 14px; } /* 손가락으로 누르기 쉽게 */
+  .level-seg button { padding-block: 7px; font-size: 14px; }
   .cook-row { padding-block: 10px; }
   .cook-btns .btn { padding: 7px 12px; font-size: 13px; }
 
