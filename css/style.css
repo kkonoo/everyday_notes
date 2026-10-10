@@ -789,7 +789,7 @@ select.cat-select { padding: 2px 8px; border: 1px solid var(--line); border-radi
 .type-pick-row { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 2px 0 12px 23px; font-size: 13px; }
 /* 오늘 뭐 해 먹지 */
 .cook-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.cook-cuisines { margin: 2px 4px 8px; }
+.cook-cuisines, .cook-courses { margin: 2px 4px 8px; }
 .cook-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 4px 8px 8px; border-radius: 8px; }
 .cook-row:hover { background: var(--surface-2); }
 .cook-main { flex: 1 1 140px; min-width: 0; cursor: pointer; }
@@ -972,7 +972,7 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .fridge-tabs button { flex: 1; padding-block: 8px; font-size: 14px; }
   .fridge-view[data-pane="cook"] .stock, .fridge-view[data-pane="stock"] #cookPane { display: none; }
   .stock { overflow: visible; }
-  .place-pills button, .cook-cuisines button { padding: 7px 14px; font-size: 13px; }
+  .place-pills button, .cook-cuisines button, .cook-courses button { padding: 7px 14px; font-size: 13px; }
   .stock-map { margin-inline: -4px; }
   .place-card { padding: 12px; }
   .item-chip { padding: 6px 11px; font-size: 14px; } /* 손가락으로 누르기 쉽게 */

@@ -565,7 +565,8 @@ $('foodCatsBtn').addEventListener('click', openFoodCats);
 $('foodCatsClose').addEventListener('click', () => $('foodCatsDlg').close());
 
 // ---------- 오늘 뭐 해 먹지 ----------
-// 메뉴가 많으면 한정없이 길어지니 종류(한식·양식…, 메뉴·레시피의 종류) 단추를 눌러야 그 종류만 열림 (고른 것은 기기별로 기억 prefs.cookCuisine)
+// 메뉴가 많으면 한정없이 길어지니 식단의 메뉴·레시피처럼: 종류(한식·양식…) 단추를 눌러야 열리고 → 분류(국·메인…) 단추 → 하위분류(찌개…) 제목을 눌러 펼치기
+// 고른 종류·분류, 펼친 하위분류는 기기별로 기억 (prefs.cookCuisine·cookCourse·cookOpen). 하위분류 없는 메뉴는 맨 앞에 그대로
 // 곧 먹어야 하는 재료를 쓰는 메뉴만 맨 위에 늘 보임
 function renderCook() {
   const withIng = menus().filter(m => (m.ingredients || []).length), plans = cookPlans(), out = [];
@@ -574,10 +575,37 @@ function renderCook() {
     ul.append(...ps.map(cookRow));
     return ul;
   };
-  const sections = ps => {
-    const now = ps.filter(p => !p.missing.length), near = ps.filter(p => p.missing.length);
-    if (now.length) out.push(h('div', 'slot-head', `지금 만들 수 있어요 ${now.length}`), list(now));
-    if (near.length) out.push(h('div', 'slot-head', `1–2개만 있으면 돼요 ${near.length}`), list(near));
+  const counts = ps => { const n = ps.filter(p => !p.missing.length).length; return [n && `지금 ${n}`, ps.length - n && `1–2개 ${ps.length - n}`].filter(Boolean).join(' · '); };
+  // 고른 종류 안: 분류 단추 + 하위분류 제목(처음엔 접힘)
+  const groups = (cuisine, ps) => {
+    const courses = [...new Set(ps.map(p => courseOf(p.m)))].sort(abc);
+    const course = courses.includes(prefs.cookCourse) ? prefs.cookCourse : courses[0];
+    const pills = h('div', 'pills cook-courses');
+    pills.hidden = courses.length < 2 && !known(courses[0]); // 미분류 하나뿐이면 숨김 (메뉴·레시피와 같음)
+    pills.append(...courses.map(k => button(`${k} ${ps.filter(p => courseOf(p.m) === k).length}`, () => {
+      prefs.cookCourse = k;
+      savePrefs();
+      render();
+    }, k === course ? 'on' : '')));
+    out.push(pills);
+    const inK = ps.filter(p => courseOf(p.m) === course);
+    for (const s of [...new Set(inK.map(p => p.m.sub || ''))].sort(abc)) {
+      const inS = inK.filter(p => (p.m.sub || '') === s);
+      if (!s) { out.push(list(inS)); continue; }
+      const key = groupKey(cuisine, course, s), open = !!(prefs.cookOpen || {})[key];
+      const head = h('div', 'menu-sub' + (open ? '' : ' folded'));
+      head.append(h('span', 'fold', '▾'), h('span', 'name', s), h('span', 'count', counts(inS)));
+      head.title = open ? '접기' : '펼치기';
+      head.addEventListener('click', () => {
+        const o = { ...prefs.cookOpen };
+        if (open) delete o[key]; else o[key] = true;
+        prefs.cookOpen = o;
+        savePrefs();
+        render();
+      });
+      out.push(head);
+      if (open) out.push(list(inS));
+    }
   };
   if (plans.length) {
     const soon = plans.filter(p => p.soon.length), pills = h('div', 'pills cook-cuisines');
@@ -591,7 +619,7 @@ function renderCook() {
     }, c === pick ? 'on' : '')));
     const nNow = plans.filter(p => !p.missing.length).length;
     out.push(h('div', 'slot-head', `종류별 · 지금 만들 수 있어요 ${nNow} · 1–2개만 ${plans.length - nNow}`), pills);
-    if (pick) sections(plans.filter(p => cuisineOf(p.m) === pick));
+    if (pick) groups(pick, plans.filter(p => cuisineOf(p.m) === pick));
     else out.push(h('p', 'empty', '종류를 누르면 그 종류의 메뉴가 열려요.'));
   } else {
     out.push(h('p', 'empty', !withIng.length ? '메뉴에 재료를 적어 두면 여기서 골라 줘요. (식단 › 메뉴·레시피에서 메뉴를 눌러 재료 적기)'
