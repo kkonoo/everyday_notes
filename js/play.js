@@ -9,7 +9,7 @@ const WHEEL_MAX = 24;   // 그냥 룰렛 칸 수
 const RECENT_DAYS = 30; // 후보 '최근 식단' 기간
 const playPrefs = () => ({
   tab: 'menu', src: { menu: true, recent: false, cook: false, custom: false }, cuisine: '', tag: '', skip: true, skipDays: 3, custom: '',
-  items: '', lists: [], lotsN: 6, lotsK: 1, ladderN: 4, people: [], prizes: [], sound: false, ...prefs.play,
+  open: {}, items: '', lists: [], lotsN: 6, lotsK: 1, ladderN: 4, people: [], prizes: [], sound: false, ...prefs.play,
 });
 function setPlay(patch) {
   prefs.play = { ...playPrefs(), ...patch };
@@ -225,19 +225,39 @@ function paintMenu() {
     stage.append(row);
   }
   // 후보 칩: 누르면 빼기·되돌리기
-  const head = h('div', 'cand-head'), chips = h('div', 'pills cand');
+  const head = h('div', 'cand-head');
   head.append(h('b', '', `후보 ${names.length}개`));
   if (o.skip && all.length > left.length) head.append(h('span', 'hint', `최근 ${o.skipDays}일 먹은 ${all.length - left.length}개 뺌`));
   if (menuRemoved.size) head.append(button('뺀 것 되돌리기', () => { menuRemoved.clear(); paintMenu(); }, 'btn small'));
-  chips.append(...left.map(x => {
+  const chip = x => {
     const off = menuRemoved.has(nameKey(x)), b = button(x, () => {
       if (off) menuRemoved.delete(nameKey(x)); else menuRemoved.add(nameKey(x));
       paintMenu();
     }, off ? 'off' : '');
     b.title = off ? '눌러서 다시 넣기' : '눌러서 후보에서 빼기';
     return b;
-  }));
-  $('playCand').replaceChildren(head, left.length ? chips
+  };
+  // 메뉴 그룹(종류 › 분류)별로, 메뉴·레시피와 같은 순서. 그룹 안은 하위분류 → 가나다
+  // 제목을 누르면 펼치기·접기 (처음엔 접힘, 바꾼 것은 이 기기에 기억). 메뉴·레시피에 없는 이름(직접 입력·식단에만 있는 것)은 맨 위, 처음부터 펼침
+  const byName = new Map(menus().map(m => [nameKey(m.name), m])), menuOfName = x => byName.get(nameKey(x));
+  const groupOf = x => { const m = menuOfName(x); return m ? `${cuisineOf(m)}›${courseOf(m)}` : ''; };
+  const order = (a, b) => (a !== '') - (b !== '') || ranker(CUISINES)(a.split('›')[0], b.split('›')[0]) || abc(a.split('›')[1] || '', b.split('›')[1] || '');
+  const subOf = x => (menuOfName(x) || {}).sub || '';
+  const groups = groupBy(left, groupOf, order), open = o.open, list = h('div', 'cand-groups');
+  for (const [key, ns] of groups) {
+    const isOpen = open[key] ?? (key === '' || groups.length === 1), off = ns.filter(x => menuRemoved.has(nameKey(x))).length;
+    const [c, k] = key.split('›'), gh = h('div', 'menu-sub' + (isOpen ? '' : ' folded'));
+    gh.append(h('span', 'fold', '▾'), h('span', 'name', key ? [c, known(k)].filter(Boolean).join(' › ') : '메뉴·레시피에 없는 이름'),
+      h('span', 'count', `${ns.length}개` + (off ? ` · ${off}개 뺌` : '')));
+    gh.title = isOpen ? '접기' : '펼치기';
+    gh.addEventListener('click', () => { setPlay({ open: { ...playPrefs().open, [key]: !isOpen } }); paintMenu(); });
+    list.append(gh);
+    if (!isOpen) continue;
+    const chips = h('div', 'pills cand');
+    chips.append(...[...ns].sort((a, b) => abc(subOf(a), subOf(b)) || a.localeCompare(b, 'ko')).map(chip));
+    list.append(chips);
+  }
+  $('playCand').replaceChildren(head, left.length ? list
     : h('p', 'hint', Object.values(o.src).some(Boolean) ? '후보가 없어요' : '위에서 후보를 가져올 곳을 골라 주세요'));
 }
 function menuResult(name) {

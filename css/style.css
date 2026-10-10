@@ -1074,7 +1074,7 @@ div.src-row { cursor: default; }
 .src-sub textarea { margin-top: 0; }
 .src-line { margin: 8px 0 4px; border-top: 1px solid var(--line); }
 .cand-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 12px 0 6px; font-size: 13px; }
-.cand { max-height: 220px; overflow-y: auto; }
+.cand { margin: 2px 0 8px 20px; } /* 펼친 그룹의 칩 (그룹 제목 아래 들여쓰기) */
 .cand button.off { text-decoration: line-through; opacity: .45; }
 .saved-lists { margin-bottom: 4px; }
 .play-side textarea { margin: 0 0 4px; }
@@ -1127,7 +1127,7 @@ svg.ladder { display: block; }
 .recap-title b { font-size: 17px; }
 .recap-empty { max-width: 520px; margin: 0 auto; color: var(--muted); text-align: center; }
 .recap-card {
-  max-width: 520px; min-height: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px;
+  max-width: 520px; min-height: 340px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px;
   padding: 24px 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow);
   touch-action: pan-y; user-select: none;
 }
@@ -1136,8 +1136,9 @@ svg.ladder { display: block; }
 @keyframes rc-in-next { from { opacity: 0; transform: translateX(40px); } }
 @keyframes rc-in-prev { from { opacity: 0; transform: translateX(-40px); } }
 @media (prefers-reduced-motion: reduce) { .recap-card.in-next, .recap-card.in-prev { animation: none; } }
-.rc-tag { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); font-size: 12px; font-weight: 600; }
-.recap-card h3 { margin: 10px 0 0; font-size: 15px; font-weight: 600; color: var(--muted); }
+.recap-tabs { display: flex; max-width: 520px; margin: 0 auto 12px; }
+.recap-tabs button { flex: 1; padding-block: 7px; font-size: 14px; }
+.recap-card h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
 .rc-big { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; overflow-wrap: anywhere; }
 .rc-big.name { font-size: 34px; }
 .rc-sub { margin: 0; font-size: 14px; color: var(--muted); }
@@ -1179,7 +1180,7 @@ svg.ladder { display: block; }
 
 @media (max-width: 900px) {
   .recap-banner { margin: 0 12px 10px; }
-  .recap-card { min-height: 360px; padding: 20px 18px; }
+  .recap-card { min-height: 320px; padding: 20px 18px; }
   .rc-big { font-size: 42px; }
   .rc-big.name { font-size: 30px; }
 }

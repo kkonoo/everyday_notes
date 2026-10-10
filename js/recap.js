@@ -1,8 +1,8 @@
 'use strict';
-// 결산 (설정 맨 위 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 식단·가계부 한 해를 카드로 한 장씩 (밀거나 ‹ › 단추, PC는 ← → 키)
+// 결산 (설정 맨 위 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 식단·가계부 한 해를 탭(식단·가계부·한눈에)마다 카드로 한 장씩 (밀거나 ‹ › 단추, PC는 ← → 키)
 // 숫자는 recap-core.js 에서 (데이터를 읽기만 함). 이 화면도 데이터를 고치지 않음 — 금액 숨기기·배너 닫기는 이 기기 설정(prefs.recap)만
 // 그래프는 한 계열 = 한 색(--accent), 막대는 얇게·끝만 둥글게, 숫자는 가장 큰 막대에만 (나머지는 마우스를 올리면)
-let recapYear = null, recapAt = 0, recapDir = 0; // 보는 해, 보는 카드 번호, 방금 넘긴 방향 (앱을 켜 둔 동안)
+let recapYear = null, recapTab = null, recapAt = 0, recapDir = 0; // 보는 해, 탭, 그 탭의 카드 번호, 방금 넘긴 방향 (앱을 켜 둔 동안)
 const recapPrefs = () => ({ hide: false, closed: null, ...prefs.recap });
 function setRecap(patch) {
   prefs.recap = { ...recapPrefs(), ...patch };
@@ -10,17 +10,23 @@ function setRecap(patch) {
 }
 function openRecap(year = +todayStr().slice(0, 4)) {
   recapYear = year;
+  recapTab = null;
   recapAt = 0;
   openPage('recap');
 }
 const money = v => (recapPrefs().hide ? '●●●원' : `${won(v)}원`);
+// 탭: 카드가 있는 것만. 지금 탭과 그 탭의 카드들
+const RECAP_TABS = [['meals', '🍚 식단', ['meals', 'top', 'mealMonths', 'firsts']], ['budget', '💰 가계부', ['spent', 'groups', 'topMonth', 'spentMonths']], ['summary', '📊 한눈에', ['summary']]];
+function recapTabs(cards) {
+  const tabs = RECAP_TABS.map(([key, label, ids]) => ({ key, label, cards: cards.filter(c => ids.includes(c.id)) })).filter(t => t.cards.length);
+  return { tabs, tab: tabs.find(t => t.key === recapTab) || tabs[0] };
+}
 const moneyShort = v => (recapPrefs().hide ? '●●●' : v >= 10000 ? `${won(v / 10000)}만` : won(v)); // 그래프 숫자
 
 function renderRecap() {
   const today = todayStr(), years = recapYears(db.recs, today), o = recapPrefs();
   if (!years.includes(recapYear)) recapYear = years[0];
   const { cards, end } = recapCards(db.recs, recapYear, today);
-  recapAt = Math.max(0, Math.min(recapAt, cards.length - 1));
   const head = h('div', 'page-head'), back = button('‹', closePage, 'icon-btn'), year = h('select', 'year-select');
   back.title = '돌아가기';
   fillSelect(year, years.map(y => [String(y), `${y}년`]), String(recapYear));
@@ -35,27 +41,31 @@ function renderRecap() {
     $('recapView').replaceChildren(head, title, h('p', 'panel recap-empty', '이 해에는 식단·가계부 기록이 없어요.'));
     return;
   }
-  // 카드 한 장 + 넘기기
-  const card = recapCard(cards[recapAt], recapYear);
+  // 탭 (식단·가계부·한눈에) + 그 탭의 카드 한 장 + 넘기기
+  const { tabs, tab } = recapTabs(cards), list = tab.cards, seg = h('div', 'seg recap-tabs');
+  recapTab = tab.key;
+  recapAt = Math.max(0, Math.min(recapAt, list.length - 1));
+  seg.append(...tabs.map(t => button(t.key === 'summary' ? t.label : `${t.label} ${t.cards.length}`, () => { recapTab = t.key; recapAt = 0; render(); }, t === tab ? 'on' : '')));
+  const card = recapCard(list[recapAt], recapYear);
   if (recapDir) card.classList.add(recapDir > 0 ? 'in-next' : 'in-prev');
   recapDir = 0;
   recapSwipe(card, recapGo);
   const nav = h('div', 'recap-nav'), dots = h('div', 'recap-dots');
   const prev = button('‹', () => recapGo(-1), 'icon-btn'), next = button('›', () => recapGo(1), 'icon-btn');
   prev.disabled = recapAt === 0;
-  next.disabled = recapAt === cards.length - 1;
+  next.disabled = recapAt === list.length - 1;
   prev.title = '이전 카드';
   next.title = '다음 카드';
-  dots.append(...cards.map((c, i) => {
+  dots.append(...list.map((c, i) => {
     const d = button('', () => { recapDir = Math.sign(i - recapAt); recapAt = i; render(); }, i === recapAt ? 'on' : '');
     d.title = `${i + 1}번째 카드`;
     return d;
   }));
-  nav.append(prev, dots, h('span', 'recap-count', `${recapAt + 1} / ${cards.length}`), next);
-  $('recapView').replaceChildren(head, title, card, nav);
+  nav.append(prev, dots, h('span', 'recap-count', `${recapAt + 1} / ${list.length}`), next);
+  $('recapView').replaceChildren(head, title, ...(tabs.length > 1 ? [seg] : []), card, ...(list.length > 1 ? [nav] : []));
 }
 function recapGo(d) {
-  const n = recapCards(db.recs, recapYear, todayStr()).cards.length;
+  const n = recapTabs(recapCards(db.recs, recapYear, todayStr()).cards).tab.cards.length;
   if (recapAt + d < 0 || recapAt + d >= n) return;
   recapAt += d;
   recapDir = d;
@@ -85,11 +95,8 @@ addEventListener('keydown', e => {
 });
 
 // ---------- 카드 ----------
-const RECAP_TAGS = { meals: '🍚 식단', top: '🍚 식단', mealMonths: '🍚 식단', firsts: '🍚 식단',
-  spent: '💰 가계부', groups: '💰 가계부', topMonth: '💰 가계부', spentMonths: '💰 가계부', summary: '📊 한눈에' };
 function recapCard(c, year) {
   const box = h('article', 'recap-card'), add = (...els) => box.append(...els);
-  add(h('span', 'rc-tag', RECAP_TAGS[c.id]));
   if (c.id === 'meals') {
     add(h('h3', '', '기록한 끼니'), h('div', 'rc-big', `${c.meals}끼`), h('p', 'rc-sub', `메뉴 ${c.items}개를 기록했어요`));
     if (c.last != null) {
