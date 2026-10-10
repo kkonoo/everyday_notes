@@ -1121,21 +1121,13 @@ svg.ladder { display: block; }
   .src-row { padding-block: 3px; }
 }
 
-/* 결산 (recap.js): 카드 한 장씩. 그래프는 한 계열 = --accent, 막대 24px 이하·끝만 4px 둥글게, 숫자는 가장 큰 막대에만 */
+/* 결산 (recap.js): 탭마다 카드를 위아래로. 그래프는 한 계열 = --accent, 막대 24px 이하·끝만 4px 둥글게, 숫자는 가장 큰 막대에만 */
 .year-select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 14px; }
 .recap-title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 10px; margin: 0 2px 12px; }
 .recap-title b { font-size: 17px; }
 .recap-empty { max-width: 520px; margin: 0 auto; color: var(--muted); text-align: center; }
-.recap-card {
-  max-width: 520px; min-height: 340px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px;
-  padding: 24px 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow);
-  touch-action: pan-y; user-select: none;
-}
-.recap-card.in-next { animation: rc-in-next .25s ease-out; }
-.recap-card.in-prev { animation: rc-in-prev .25s ease-out; }
-@keyframes rc-in-next { from { opacity: 0; transform: translateX(40px); } }
-@keyframes rc-in-prev { from { opacity: 0; transform: translateX(-40px); } }
-@media (prefers-reduced-motion: reduce) { .recap-card.in-next, .recap-card.in-prev { animation: none; } }
+.recap-list { display: flex; flex-direction: column; gap: 12px; max-width: 520px; margin: 0 auto; }
+.recap-card { display: flex; flex-direction: column; gap: 6px; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
 .recap-tabs { display: flex; max-width: 520px; margin: 0 auto 12px; }
 .recap-tabs button { flex: 1; padding-block: 7px; font-size: 14px; }
 .recap-card h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
@@ -1164,23 +1156,13 @@ svg.ladder { display: block; }
 .rc-names .more { border-style: dashed; color: var(--muted); }
 .rc-summary { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 17px; font-weight: 600; }
 .rc-summary li { display: flex; align-items: baseline; gap: 10px; }
-/* 넘기기: ‹ 점 3 / 9 › */
-.recap-nav { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 520px; margin: 14px auto 0; }
-.recap-nav .icon-btn { width: 44px; height: 44px; border: 1px solid var(--line); background: var(--surface); font-size: 22px; }
-.recap-nav .icon-btn:disabled { opacity: .3; cursor: default; }
-.recap-dots { display: flex; flex-wrap: wrap; justify-content: center; }
-.recap-dots button { position: relative; width: 16px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; }
-.recap-dots button::after { content: ""; position: absolute; left: 4px; top: 8px; width: 8px; height: 8px; border-radius: 4px; background: var(--line); }
-.recap-dots button.on { width: 28px; }
-.recap-dots button.on::after { width: 20px; background: var(--accent); }
-.recap-count { min-width: 40px; font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
 /* 12/1 ~ 1/31 배너 */
 .recap-banner { display: flex; align-items: center; gap: 6px; margin: 0 24px 12px; padding: 4px 6px 4px 4px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: var(--accent-soft); }
 .banner-go { flex: 1; padding: 8px 10px; border: none; background: transparent; text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; }
 
 @media (max-width: 900px) {
   .recap-banner { margin: 0 12px 10px; }
-  .recap-card { min-height: 320px; padding: 20px 18px; }
+  .recap-card { padding: 20px 18px; }
   .rc-big { font-size: 42px; }
   .rc-big.name { font-size: 30px; }
 }
