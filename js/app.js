@@ -154,7 +154,7 @@ function toast(text, ms = 2000) {
 // 보기: notes(노트) / meals(식단) / fridge(냉장고) / budget(가계부)
 // 입력 중이던 칸(data-key)은 다시 그린 뒤에도 글자·커서(선택) 그대로 (동기화로 다시 그려져도)
 let focusNext = null; // 다시 그린 뒤 커서를 둘 칸의 data-key (새 묶음 이름 등)
-// 전체 화면 페이지: 'play'(놀이) / 'recap'(결산) — 설정 맨 위 단추로 열고, 위 탭·뒤로 가기로 닫음. 기억 안 함 (앱을 다시 열면 원래 탭)
+// 전체 화면 페이지: 'play'(놀이, 설정 맨 위) / 'recap'(결산, 가계부 ‘오늘’ 옆) — 위 탭·뒤로 가기로 닫음. 기억 안 함 (앱을 다시 열면 원래 탭)
 let page = null;
 function openPage(p) { page = p; render(); scrollTo(0, 0); }
 function closePage() { page = null; render(); }

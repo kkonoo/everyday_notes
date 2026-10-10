@@ -1,5 +1,5 @@
 'use strict';
-// 결산 (설정 맨 위 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 식단·가계부 한 해를 탭(식단·가계부·한눈에)마다 카드로 위아래 쭉
+// 결산 (가계부 ‘오늘’ 옆 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 식단·가계부 한 해를 탭(식단·가계부·한눈에)마다 카드로 위아래 쭉
 // 숫자는 recap-core.js 에서 (데이터를 읽기만 함). 이 화면도 데이터를 고치지 않음 — 금액 숨기기·배너 닫기는 이 기기 설정(prefs.recap)만
 // 그래프는 한 계열 = 한 색(--accent), 막대는 얇게·끝만 둥글게, 숫자는 가장 큰 막대에만 (나머지는 마우스를 올리면)
 let recapYear = null, recapTab = null; // 보는 해, 탭 (앱을 켜 둔 동안)
@@ -8,9 +8,9 @@ function setRecap(patch) {
   prefs.recap = { ...recapPrefs(), ...patch };
   savePrefs();
 }
-function openRecap(year = +todayStr().slice(0, 4)) {
+function openRecap(year = +todayStr().slice(0, 4), tab = null) { // tab 없으면 첫 탭
   recapYear = year;
-  recapTab = null;
+  recapTab = tab;
   openPage('recap');
 }
 const money = v => (recapPrefs().hide ? '●●●원' : `${won(v)}원`);
@@ -142,4 +142,4 @@ function renderRecapBanner() {
   b.replaceChildren(go, x);
 }
 
-$('recapBtn').addEventListener('click', () => { $('settings').close(); openRecap(); });
+$('recapBtn').addEventListener('click', () => openRecap(undefined, 'budget')); // 가계부에서 여니 가계부 탭부터

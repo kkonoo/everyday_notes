@@ -941,7 +941,8 @@ select.acct.none { border-style: dashed; color: var(--faint); }
 @media (max-width: 900px) {
   body { height: auto; min-height: 100vh; }
   .topbar { padding: 12px 12px 10px; }
-  .month-title { min-width: 104px; font-size: 18px; }
+  .month-title { min-width: 104px; font-size: 18px; white-space: nowrap; }
+  .meal-nav .btn { margin-left: 2px; padding-inline: 10px; } /* 가계부는 ‘오늘’ 옆에 ‘📊 결산’까지 360px 한 줄에 */
   .view-title { display: none; } /* 폰: 노트·냉장고는 위 탭으로 보이니 제목 없이 (노트 안에서는 ‹ 뒤로 가기만) */
   /* 위 줄: 보기 4개 + 로그인·테마·설정이 360px 폰 한 줄에 들어가게 */
   .tools { flex-grow: 1; gap: 4px; } /* 제목이 없으니 보기 탭은 왼쪽, 로그인·테마·설정은 오른쪽 끝 */
@@ -1025,7 +1026,9 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .grp-head .icon-btn, #menuList .menu-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
 }
 
-/* ---------- 전체 화면 페이지: 놀이 (play.js) · 결산 (recap.js). 설정 맨 위 단추로 열고 위 탭·뒤로 가기로 닫음 ---------- */
+/* ---------- 전체 화면 페이지: 놀이 (play.js, 설정 맨 위) · 결산 (recap.js, 가계부 ‘오늘’ 옆). 위 탭·뒤로 가기로 닫음 ---------- */
+#recapBtn { display: none; }
+body[data-view="budget"] #recapBtn { display: inline-block; } /* 식단도 같은 달 넘기기 줄을 쓰지만 결산 단추는 가계부에만 */
 .page-links { margin-top: 0; }
 .page-view { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 24px; }
 body[data-view="play"] .play-view, body[data-view="recap"] .recap-view { display: block; }
