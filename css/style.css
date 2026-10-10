@@ -1021,3 +1021,99 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .text-input.third { padding-inline: 6px; font-size: 13px; } /* '아시아·기타'가 다 보이게 */
   .grp-head .icon-btn, #menuList .menu-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
 }
+
+/* ---------- 전체 화면 페이지: 놀이 (play.js). 설정 맨 위 단추로 열고 위 탭·뒤로 가기로 닫음 ---------- */
+.page-links { margin-top: 0; }
+.page-view { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 24px; }
+body[data-view="play"] .play-view { display: block; }
+body[data-view="play"] .nav { display: none; }
+body[data-view="play"] .topbar { justify-content: flex-end; }
+.page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.page-head h2 { margin: 0 6px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.page-head .sound { margin-left: auto; }
+.stepper { display: inline-flex; align-items: center; padding: 1px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); }
+.stepper b { min-width: 26px; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper .icon-btn:disabled { opacity: .3; cursor: default; }
+.play-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 16px; align-items: start; }
+.play-stage { align-items: center; gap: 14px; }
+.play-one { gap: 12px; max-width: 760px; }
+.play-setup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.play-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.play-status { margin: 0; font-size: 15px; font-weight: 600; }
+.play-one > .hint { margin: 0; }
+.result { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.result-text { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; text-align: center; overflow-wrap: anywhere; }
+
+/* 룰렛 판: 위 바늘(▼)은 그대로, 판(.wheel)이 돎 */
+.wheel-box { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.wheel-wrap { position: relative; width: min(340px, 100%); aspect-ratio: 1; }
+.wheel { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; } /* 돌린 판의 네모 모서리가 아래 단추를 가리지 않게 */
+.wheel-svg { display: block; width: 100%; height: 100%; }
+.wheel-svg path { stroke: var(--surface); stroke-width: 2; }
+.wheel-svg text { fill: #26282B; text-anchor: end; dominant-baseline: middle; font-weight: 600; pointer-events: none; }
+.wheel-svg text.left { text-anchor: start; }
+.wheel-hub { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.wheel-empty { fill: var(--surface-2); stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 6; }
+.wheel-pointer { position: absolute; z-index: 1; top: -8px; left: 50%; transform: translateX(-50%); border: 12px solid transparent; border-top: 22px solid var(--text); border-bottom: 0; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .25)); }
+.spin-btn { padding: 10px 32px; font-size: 15px; }
+.spin-btn:disabled { opacity: .45; cursor: default; }
+.wheel-result { min-height: 40px; }
+.board-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+
+/* 메뉴 룰렛 후보 */
+.src-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 5px 0; font-size: 14px; cursor: pointer; }
+div.src-row { cursor: default; }
+.src-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.src-row input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.src-row .count { font-size: 12px; color: var(--muted); }
+.src-sub { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 24px; }
+.src-sub select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.src-sub textarea { margin-top: 0; }
+.src-line { margin: 8px 0 4px; border-top: 1px solid var(--line); }
+.cand-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 12px 0 6px; font-size: 13px; }
+.cand { max-height: 220px; overflow-y: auto; }
+.cand button.off { text-decoration: line-through; opacity: .45; }
+.saved-lists { margin-bottom: 4px; }
+.play-side textarea { margin: 0 0 4px; }
+
+/* 제비뽑기: 카드 뒤집기 (뒷면 = 번호, 앞면 = 당첨·꽝) */
+.lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+.lot { position: relative; aspect-ratio: 3 / 4; padding: 0; border: none; background: transparent; cursor: pointer; perspective: 600px; }
+.lot > span { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .5s; font-weight: 700; }
+.lot-back { background: var(--accent); color: var(--on-accent); font-size: 20px; box-shadow: var(--shadow); }
+.lot-front { transform: rotateY(-180deg); border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 15px; }
+.lot.open .lot-back { transform: rotateY(180deg); }
+.lot.open .lot-front { transform: rotateY(0); }
+.lot.win .lot-front { border: 2px solid var(--breakfast); background: color-mix(in srgb, var(--breakfast) 28%, var(--surface)); color: var(--text); }
+
+/* 사다리: 이름·결과 칸과 세로줄이 같은 n칸 */
+.ladder-names, .ladder-prizes { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.ladder-names > *, .ladder-prizes > * {
+  --lc: var(--line);
+  min-width: 0; margin: 0 2px; padding: 8px 2px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface);
+  font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: none;
+}
+.ladder-names input:focus, .ladder-prizes input:focus { border-color: var(--accent); }
+.ladder-names button { font-weight: 600; cursor: pointer; }
+.ladder-names button:hover { border-color: var(--lc); }
+.ladder-names button.done, .ladder-prizes .shown { border-color: var(--lc); background: color-mix(in srgb, var(--lc) 18%, var(--surface)); }
+.ladder-prizes .shown { font-weight: 700; }
+.ladder-prizes .hidden { color: var(--faint); }
+.ladder-box { min-height: 40px; }
+.ladder-blank { display: grid; place-items: center; height: 120px; margin: 4px 2px; border: 1.5px dashed var(--line); border-radius: 9px; color: var(--faint); font-size: 22px; }
+svg.ladder { display: block; }
+.ladder .rail, .ladder .rung { stroke: var(--faint); stroke-width: 2.5; stroke-linecap: round; }
+.ladder .trail { fill: none; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+.ladder-results { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ladder-results li { padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--lc) 18%, var(--surface)); font-size: 13px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .page-view { padding: 0 12px 16px; overflow: visible; }
+  .page-head { gap: 6px; margin-bottom: 10px; }
+  .page-head h2 { font-size: 18px; }
+  .page-head .seg { order: 3; width: 100%; }
+  .page-head .seg button { flex: 1; padding-inline: 4px; }
+  .play-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .wheel-wrap { width: min(320px, 100%); }
+  .src-row { padding-block: 3px; }
+}

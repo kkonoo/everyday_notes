@@ -154,14 +154,19 @@ function toast(text, ms = 2000) {
 // 보기: notes(노트) / meals(식단) / fridge(냉장고) / budget(가계부)
 // 입력 중이던 칸(data-key)은 다시 그린 뒤에도 글자·커서(선택) 그대로 (동기화로 다시 그려져도)
 let focusNext = null; // 다시 그린 뒤 커서를 둘 칸의 data-key (새 묶음 이름 등)
+// 전체 화면 페이지: 'play'(놀이) — 설정 맨 위 단추로 열고, 위 탭·뒤로 가기로 닫음. 기억 안 함 (앱을 다시 열면 원래 탭)
+let page = null;
+function openPage(p) { page = p; render(); scrollTo(0, 0); }
+function closePage() { page = null; render(); }
 function render() {
-  const v = ['meals', 'fridge', 'budget'].includes(prefs.view) ? prefs.view : 'notes';
+  const v = page || (['meals', 'fridge', 'budget'].includes(prefs.view) ? prefs.view : 'notes');
   document.body.dataset.view = v;
-  $('viewTitle').textContent = v === 'fridge' ? '냉장고' : '노트';
+  $('viewTitle').textContent = { fridge: '냉장고', play: '놀이' }[v] || '노트';
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   const a = document.activeElement;
   const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart, end: a.selectionEnd } : null;
-  if (v === 'meals') renderMeals(); else if (v === 'fridge') renderFridge(); else if (v === 'budget') renderBudget(); else renderNotes();
+  if (v === 'play') renderPlay();
+  else if (v === 'meals') renderMeals(); else if (v === 'fridge') renderFridge(); else if (v === 'budget') renderBudget(); else renderNotes();
   const key = focusNext || (keep && keep.key);
   focusNext = null;
   const e = key && document.querySelector(`[data-key="${CSS.escape(key)}"]`);
@@ -175,6 +180,7 @@ $('viewSeg').addEventListener('click', e => {
   const b = e.target.closest('[data-view]');
   if (!b) return;
   prefs.view = b.dataset.view;
+  page = null;
   savePrefs();
   render();
 });
@@ -402,6 +408,7 @@ if (phone()) {
     if (dlg) dlg.close();
     else if (pickerOpen) $('monthPicker').hidePopover();
     else if (open) document.activeElement.blur();
+    else if (page) closePage();
     else if (['meals', 'fridge', 'budget'].includes(prefs.view)) { prefs.view = 'notes'; savePrefs(); render(); }
     else if (editing) { editing = false; render(); }
     else if (notePage) { notePage = false; render(); }

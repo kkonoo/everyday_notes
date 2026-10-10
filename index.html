@@ -171,6 +171,9 @@
   </aside>
 </main>
 
+<!-- 놀이: 메뉴 룰렛 · 룰렛 · 제비뽑기 · 사다리 (설정 맨 위 🎲 놀이로 여는 전체 화면, play.js) -->
+<main class="page-view play-view" id="playView"></main>
+
 <!-- 이름 적기 창 (prompt() 대신, Enter = 확인). 다른 창 위에도 뜨니 맨 앞에 둠: 폰 뒤로 가기는 처음 찾은 열린 창을 닫음 -->
 <dialog id="ask">
   <form id="askForm">
@@ -373,6 +376,35 @@
   </div>
 </dialog>
 
+<!-- 놀이 › 메뉴 룰렛 '이걸로 할게요': 고른 날짜·끼니 식단에 넣기 (내일 이후면 미리 넣어 두는 계획) -->
+<dialog id="pickMeal">
+  <h2 id="pickTitle"></h2>
+  <div class="row">
+    <label>날짜</label>
+    <div class="seg" id="pickDay">
+      <button type="button" data-day="0">오늘</button>
+      <button type="button" data-day="1">내일</button>
+    </div>
+    <input type="date" id="pickDate" class="text-input">
+  </div>
+  <div class="row">
+    <label>끼니</label>
+    <div class="seg" id="pickSlot">
+      <button type="button" data-slot="b">아침</button>
+      <button type="button" data-slot="l">점심</button>
+      <button type="button" data-slot="s">간식</button>
+      <button type="button" data-slot="d">저녁</button>
+      <button type="button" data-slot="n">야식</button>
+    </div>
+  </div>
+  <p class="hint" id="pickNote"></p>
+  <div class="dialog-actions">
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="pickCancel">취소</button>
+    <button type="button" class="btn primary" id="pickOk">식단에 넣기</button>
+  </div>
+</dialog>
+
 <dialog id="placesDlg">
   <h2>보관 위치</h2>
   <p class="hint">⋮⋮ 끌어서 순서 바꾸기 · 그림을 눌러 종류(그림·색) 바꾸기 · ✎ 이름 바꾸기 · ✕ 지우기 (그 재료들은 ‘위치 미정’으로 남아요)</p>
@@ -443,6 +475,11 @@
 </dialog>
 
 <dialog id="settings">
+  <div class="row page-links">
+    <button class="btn" id="playBtn">🎲 놀이</button>
+    <span class="hint">메뉴 룰렛 · 룰렛 · 제비뽑기 · 사다리타기</span>
+  </div>
+
   <section id="accountSection" hidden>
     <h2>계정</h2>
     <div class="row">
@@ -513,6 +550,8 @@
 <script src="js/menu-groups.js"></script>
 <script src="js/fridge.js"></script>
 <script src="js/budget.js"></script>
+<script src="js/play-core.js"></script>
+<script src="js/play.js"></script>
 <script type="module" src="js/sync.js"></script>
 </body>
 </html>
