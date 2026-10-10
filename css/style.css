@@ -790,6 +790,7 @@ select.cat-select { padding: 2px 8px; border: 1px solid var(--line); border-radi
 /* 오늘 뭐 해 먹지 */
 .cook-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .cook-cuisines, .cook-courses { margin: 2px 4px 8px; }
+.slot-head.cook-sec { margin-left: 28px; } /* 하위분류 제목 아래 */
 .cook-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 4px 8px 8px; border-radius: 8px; }
 .cook-row:hover { background: var(--surface-2); }
 .cook-main { flex: 1 1 140px; min-width: 0; cursor: pointer; }

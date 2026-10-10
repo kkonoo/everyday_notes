@@ -575,6 +575,12 @@ function renderCook() {
     ul.append(...ps.map(cookRow));
     return ul;
   };
+  // 지금 만들 수 있어요 / 1–2개만 있으면 돼요 로 나눠서 (sub = 하위분류 제목 아래라 들여쓰기)
+  const sections = (ps, sub) => {
+    const now = ps.filter(p => !p.missing.length), near = ps.filter(p => p.missing.length);
+    if (now.length) out.push(h('div', `slot-head${sub ? ' cook-sec' : ''}`, `지금 만들 수 있어요 ${now.length}`), list(now));
+    if (near.length) out.push(h('div', `slot-head${sub ? ' cook-sec' : ''}`, `1–2개만 있으면 돼요 ${near.length}`), list(near));
+  };
   const counts = ps => { const n = ps.filter(p => !p.missing.length).length; return [n && `지금 ${n}`, ps.length - n && `1–2개 ${ps.length - n}`].filter(Boolean).join(' · '); };
   // 고른 종류 안: 분류 단추 + 하위분류 제목(처음엔 접힘)
   const groups = (cuisine, ps) => {
@@ -591,7 +597,7 @@ function renderCook() {
     const inK = ps.filter(p => courseOf(p.m) === course);
     for (const s of [...new Set(inK.map(p => p.m.sub || ''))].sort(abc)) {
       const inS = inK.filter(p => (p.m.sub || '') === s);
-      if (!s) { out.push(list(inS)); continue; }
+      if (!s) { sections(inS); continue; }
       const key = groupKey(cuisine, course, s), open = !!(prefs.cookOpen || {})[key];
       const head = h('div', 'menu-sub' + (open ? '' : ' folded'));
       head.append(h('span', 'fold', '▾'), h('span', 'name', s), h('span', 'count', counts(inS)));
@@ -604,7 +610,7 @@ function renderCook() {
         render();
       });
       out.push(head);
-      if (open) out.push(list(inS));
+      if (open) sections(inS, true);
     }
   };
   if (plans.length) {
