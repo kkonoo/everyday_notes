@@ -1124,15 +1124,13 @@ svg.ladder { display: block; }
   .src-row { padding-block: 3px; }
 }
 
-/* 결산 (recap.js): 탭마다 카드를 위아래로. 그래프는 한 계열 = --accent, 막대 24px 이하·끝만 4px 둥글게, 숫자는 가장 큰 막대에만 */
+/* 결산 (recap.js): 가계부 지출 카드를 위아래로. 그래프는 한 계열 = --accent, 막대 24px 이하·끝만 4px 둥글게, 숫자는 가장 큰 막대에만 */
 .year-select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 14px; }
 .recap-title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 10px; margin: 0 2px 12px; }
 .recap-title b { font-size: 17px; }
 .recap-empty { max-width: 520px; margin: 0 auto; color: var(--muted); text-align: center; }
 .recap-list { display: flex; flex-direction: column; gap: 12px; max-width: 520px; margin: 0 auto; }
 .recap-card { display: flex; flex-direction: column; gap: 6px; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
-.recap-tabs { display: flex; max-width: 520px; margin: 0 auto 12px; }
-.recap-tabs button { flex: 1; padding-block: 7px; font-size: 14px; }
 .recap-card h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
 .rc-big { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; overflow-wrap: anywhere; }
 .rc-big.name { font-size: 34px; }
@@ -1154,11 +1152,6 @@ svg.ladder { display: block; }
 .rc-none { padding-bottom: 3px; font-size: 12px; line-height: 1; color: var(--faint); }
 .rc-val { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .rc-lab { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.rc-names { margin-top: 12px; }
-.rc-names span { padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px; font-size: 13px; }
-.rc-names .more { border-style: dashed; color: var(--muted); }
-.rc-summary { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 17px; font-weight: 600; }
-.rc-summary li { display: flex; align-items: baseline; gap: 10px; }
 /* 12/1 ~ 1/31 배너 */
 .recap-banner { display: flex; align-items: center; gap: 6px; margin: 0 24px 12px; padding: 4px 6px 4px 4px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: var(--accent-soft); }
 .banner-go { flex: 1; padding: 8px 10px; border: none; background: transparent; text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; }

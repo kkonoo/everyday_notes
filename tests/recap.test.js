@@ -7,7 +7,7 @@ const TODAY = '2026-10-10';
 let n = 0;
 const rec = (kind, f) => ({ id: f.id || `r${++n}`, kind, createdAt: 0, updatedAt: 0, ...f });
 
-// 식단 10개 (+ 지운 것 1개)
+// 식단 10개 (+ 지운 것 1개): 결산에서 안 세는지 확인용
 const MEALS = [
   rec('meal', { date: '2026-01-05', slot: 'l', name: '김치찌개' }),
   rec('meal', { date: '2026-01-05', slot: 'l', name: '밥' }),        // 같은 끼니 (끼니 수는 1)
@@ -42,21 +42,6 @@ const card = (res, id) => res.cards.find(c => c.id === id);
 const ids = res => res.cards.map(c => c.id);
 const freeze = o => { Object.values(o).forEach(v => v && typeof v === 'object' && freeze(v)); return Object.freeze(o); };
 
-test('식단 카드: 손으로 센 값과 같음', () => {
-  const r = R.recapCards([...MEALS], 2026, TODAY);
-  // 끼니: 1/5 점심, 1/20 저녁, 3/2 아침, 3/2 저녁, 7/15 저녁, 10/10 저녁 = 6 · 메뉴 7개 (내일·지운 것 뺌)
-  // 작년 같은 기간(2025-01-01 ~ 2025-10-10): 3/1 점심 라면 = 1끼 (12/31은 기간 밖)
-  assert.deepEqual(card(r, 'meals'), { id: 'meals', meals: 6, items: 7, last: 1 });
-  // 김치찌개 2 · 카레 2 (같으면 가나다) · 밥 · 토스트 · 파스타 1
-  assert.deepEqual(card(r, 'top').items, [
-    { name: '김치찌개', count: 2 }, { name: '카레', count: 2 }, { name: '밥', count: 1 }, { name: '토스트', count: 1 }, { name: '파스타', count: 1 },
-  ]);
-  // 1~10월 (오늘까지): 1월 2끼, 3월 2끼, 7월 1끼, 10월 1끼
-  assert.deepEqual(card(r, 'mealMonths').months.map(x => x.n), [2, 0, 2, 0, 0, 0, 1, 0, 0, 1]);
-  // 작년까지 먹은 것: 카레, 라면 → 처음: 김치찌개, 밥, 토스트, 파스타
-  assert.deepEqual(card(r, 'firsts'), { id: 'firsts', count: 4, names: ['김치찌개', '밥', '토스트', '파스타'] });
-});
-
 test('가계부 카드: 손으로 센 값과 같음', () => {
   const r = R.recapCards([...BUDGET], 2026, TODAY);
   // 1월 38만 · 2월 41만+10만 · 3월 45만+5만 · 4~7월 기록 없음 · 8월 50만+30만 · 9월 52만 · 10월 50만(매달 같은 금액)
@@ -70,23 +55,23 @@ test('가계부 카드: 손으로 센 값과 같음', () => {
   assert.deepEqual(card(r, 'topMonth'), { id: 'topMonth', month: 8, amount: 800000 });
 });
 
-test('지난해(한 해 전체)와 요약 카드', () => {
+test('지난해(한 해 전체)', () => {
   const r = R.recapCards([...MEALS, ...BUDGET], 2025, TODAY);
-  // 2025년: 식단 2끼(3/1, 12/31), 그 전 기록이 없으니 '처음 먹어 본 메뉴'는 없음 · 지출 2월 20만 + 11월 30만
-  assert.deepEqual(ids(r), ['meals', 'top', 'mealMonths', 'spent', 'groups', 'topMonth', 'spentMonths', 'summary']);
-  assert.equal(card(r, 'mealMonths').months.length, 12);
+  // 2025년 지출: 2월 20만 + 11월 30만, 2024년 기록 없음 → 작년 비교 없음
+  assert.deepEqual(ids(r), ['spent', 'groups', 'topMonth', 'spentMonths']);
   assert.deepEqual(card(r, 'spent'), { id: 'spent', total: 500000, recorded: 2, upTo: 12, last: null });
-  assert.deepEqual(card(r, 'summary'), { id: 'summary', meals: 2, topMenu: '라면', firsts: null, spent: 500000, topMonth: 11 });
+  assert.deepEqual(card(r, 'topMonth'), { id: 'topMonth', month: 11, amount: 300000 });
 });
 
-test('데이터가 없는 쪽 카드는 안 나옴', () => {
-  assert.deepEqual(ids(R.recapCards([...MEALS], 2026, TODAY)), ['meals', 'top', 'mealMonths', 'firsts', 'summary']);
-  assert.deepEqual(ids(R.recapCards([...BUDGET], 2026, TODAY)), ['spent', 'groups', 'topMonth', 'spentMonths', 'summary']);
+test('식단은 안 셈, 가계부 지출 기록이 없으면 카드 없음', () => {
+  assert.deepEqual(R.recapCards([...MEALS], 2026, TODAY).cards, []); // 식단 결산은 없앰
+  assert.deepEqual(ids(R.recapCards([...MEALS, ...BUDGET], 2026, TODAY)), ['spent', 'groups', 'topMonth', 'spentMonths']);
   assert.deepEqual(R.recapCards([], 2026, TODAY).cards, []);
   assert.deepEqual(R.recapCards([...MEALS, ...BUDGET], 2024, TODAY).cards, []); // 기록 없는 해
   assert.deepEqual(R.recapCards([...MEALS, ...BUDGET], 2027, TODAY).cards, []); // 아직 안 온 해
-  // 작년 기록이 없으면 비교 없음
-  assert.equal(card(R.recapCards(MEALS.filter(m => m.date >= '2026-01-01'), 2026, TODAY), 'meals').last, null);
+  // 한 달만 적었으면 '달마다 쓴 돈'은 없음 (두 달 이상일 때만)
+  const one = [rec('bline', { side: 'out', group: 'living', name: '생활비', actual: { '2026-10': 2229704 }, plans: {}, from: '2026-10', to: null })];
+  assert.deepEqual(ids(R.recapCards(one, 2026, TODAY)), ['spent', 'groups', 'topMonth']);
 });
 
 test('데이터를 바꾸지 않음 (얼린 데이터로 계산해도 오류 없음)', () => {
@@ -96,7 +81,8 @@ test('데이터를 바꾸지 않음 (얼린 데이터로 계산해도 오류 없
 });
 
 test('볼 수 있는 해 · 배너 기간', () => {
-  assert.deepEqual(R.recapYears([...MEALS, ...BUDGET], TODAY), [2026, 2025]); // 내일 식단·내년 항목은 안 셈
+  assert.deepEqual(R.recapYears([...MEALS, ...BUDGET], TODAY), [2026, 2025]); // 내년 항목은 안 셈
+  assert.deepEqual(R.recapYears([...MEALS], TODAY), [2026]); // 식단은 안 셈
   assert.deepEqual(R.recapYears([], TODAY), [2026]);
   assert.equal(R.recapSeason('2026-11-30'), null);
   assert.equal(R.recapSeason('2026-12-01'), 2026);

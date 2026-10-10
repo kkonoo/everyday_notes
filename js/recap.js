@@ -1,25 +1,18 @@
 'use strict';
-// 결산 (가계부 ‘오늘’ 옆 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 식단·가계부 한 해를 탭(식단·가계부·한눈에)마다 카드로 위아래 쭉
+// 결산 (가계부 ‘오늘’ 옆 📊 결산, 12/1 ~ 1/31엔 홈 위 배너로도): 가계부 한 해 지출을 카드로 위아래 쭉
 // 숫자는 recap-core.js 에서 (데이터를 읽기만 함). 이 화면도 데이터를 고치지 않음 — 금액 숨기기·배너 닫기는 이 기기 설정(prefs.recap)만
 // 그래프는 한 계열 = 한 색(--accent), 막대는 얇게·끝만 둥글게, 숫자는 가장 큰 막대에만 (나머지는 마우스를 올리면)
-let recapYear = null, recapTab = null; // 보는 해, 탭 (앱을 켜 둔 동안)
+let recapYear = null; // 보는 해 (앱을 켜 둔 동안)
 const recapPrefs = () => ({ hide: false, closed: null, ...prefs.recap });
 function setRecap(patch) {
   prefs.recap = { ...recapPrefs(), ...patch };
   savePrefs();
 }
-function openRecap(year = +todayStr().slice(0, 4), tab = null) { // tab 없으면 첫 탭
+function openRecap(year = +todayStr().slice(0, 4)) {
   recapYear = year;
-  recapTab = tab;
   openPage('recap');
 }
 const money = v => (recapPrefs().hide ? '●●●원' : `${won(v)}원`);
-// 탭: 카드가 있는 것만. 지금 탭과 그 탭의 카드들
-const RECAP_TABS = [['meals', '🍚 식단', ['meals', 'top', 'mealMonths', 'firsts']], ['budget', '💰 가계부', ['spent', 'groups', 'topMonth', 'spentMonths']], ['summary', '📊 한눈에', ['summary']]];
-function recapTabs(cards) {
-  const tabs = RECAP_TABS.map(([key, label, ids]) => ({ key, label, cards: cards.filter(c => ids.includes(c.id)) })).filter(t => t.cards.length);
-  return { tabs, tab: tabs.find(t => t.key === recapTab) || tabs[0] };
-}
 const moneyShort = v => (recapPrefs().hide ? '●●●' : v >= 10000 ? `${won(v / 10000)}만` : won(v)); // 그래프 숫자
 
 function renderRecap() {
@@ -35,42 +28,20 @@ function renderRecap() {
   head.append(back, h('h2', '', '📊 결산'), year, hide);
   const partial = end !== `${recapYear}-12-31`, [, em, ed] = ymd(end);
   const title = h('div', 'recap-title');
-  title.append(h('b', '', `${recapYear}년 ${partial ? '지금까지 결산' : '결산'}`), h('span', 'hint', `1월 1일 ~ ${em}월 ${ed}일 · 식단·가계부`));
+  title.append(h('b', '', `${recapYear}년 ${partial ? '지금까지 결산' : '결산'}`), h('span', 'hint', `1월 ~ ${em}월 · 가계부 지출`));
   if (!cards.length) {
-    $('recapView').replaceChildren(head, title, h('p', 'panel recap-empty', '이 해에는 식단·가계부 기록이 없어요.'));
+    $('recapView').replaceChildren(head, title, h('p', 'panel recap-empty', '이 해에는 가계부 지출 기록이 없어요.'));
     return;
   }
-  // 탭 (식단·가계부·한눈에) + 그 탭의 카드들 (위아래로)
-  const { tabs, tab } = recapTabs(cards), seg = h('div', 'seg recap-tabs'), list = h('div', 'recap-list');
-  recapTab = tab.key;
-  seg.append(...tabs.map(t => button(t.key === 'summary' ? t.label : `${t.label} ${t.cards.length}`, () => { recapTab = t.key; render(); }, t === tab ? 'on' : '')));
-  list.append(...tab.cards.map(c => recapCard(c, recapYear)));
-  $('recapView').replaceChildren(head, title, ...(tabs.length > 1 ? [seg] : []), list);
+  const list = h('div', 'recap-list');
+  list.append(...cards.map(recapCard));
+  $('recapView').replaceChildren(head, title, list);
 }
 
 // ---------- 카드 ----------
-function recapCard(c, year) {
+function recapCard(c) {
   const box = h('article', 'recap-card'), add = (...els) => box.append(...els);
-  if (c.id === 'meals') {
-    add(h('h3', '', '기록한 끼니'), h('div', 'rc-big', `${c.meals}끼`), h('p', 'rc-sub', `메뉴 ${c.items}개를 기록했어요`));
-    if (c.last != null) {
-      const d = c.meals - c.last;
-      add(h('p', 'rc-vs', d ? `작년 같은 기간(${c.last}끼)보다 ${Math.abs(d)}끼 ${d > 0 ? '더' : '덜'} 기록했어요` : `작년 같은 기간과 같아요 (${c.last}끼)`));
-    }
-  } else if (c.id === 'top') {
-    const max = c.items[0].count;
-    add(h('h3', '', '가장 많이 먹은 메뉴'), h('div', 'rc-big name', c.items[0].name),
-      recapBars(c.items.map((x, i) => ({ label: `${i + 1}. ${x.name}`, share: x.count / max, value: `${x.count}번` }))));
-  } else if (c.id === 'mealMonths') {
-    const best = c.months.reduce((a, x) => (x.n > a.n ? x : a));
-    add(h('h3', '', '달마다 기록한 끼니'),
-      recapColumns(c.months.map(x => ({ label: x.m, value: x.n, tip: `${x.m}월 ${x.n}끼` })), v => `${v}끼`),
-      h('p', 'rc-sub', `가장 많이 기록한 달은 ${best.m}월 (${best.n}끼)`));
-  } else if (c.id === 'firsts') {
-    const chips = h('div', 'pills rc-names'), shown = c.names.slice(0, 12);
-    chips.append(...shown.map(x => h('span', '', x)), ...(c.names.length > shown.length ? [h('span', 'more', `외 ${c.names.length - shown.length}개`)] : []));
-    add(h('h3', '', '처음 먹어 본 메뉴'), h('div', 'rc-big', `${c.count}개`), h('p', 'rc-sub', `${year - 1}년까지 식단에 없던 메뉴예요`), chips);
-  } else if (c.id === 'spent') {
+  if (c.id === 'spent') {
     add(h('h3', '', '총지출'), h('div', 'rc-big', money(c.total)),
       h('p', 'rc-sub', `${c.recorded}달 기록 · 가계부 ‘실제’ 금액` + (c.recorded < c.upTo ? ` (안 적은 ${c.upTo - c.recorded}달은 빼고)` : '')));
     if (c.last != null) {
@@ -87,15 +58,6 @@ function recapCard(c, year) {
     add(h('h3', '', '달마다 쓴 돈'),
       recapColumns(c.months.map(x => ({ label: x.m, value: x.amount, tip: x.amount == null ? `${x.m}월 기록 없음` : `${x.m}월 ${money(x.amount)}` })), moneyShort),
       ...(c.months.some(x => x.amount == null) ? [h('p', 'rc-sub', '–는 지출을 안 적은 달이에요')] : []));
-  } else if (c.id === 'summary') {
-    const ul = h('ul', 'rc-summary');
-    const line = (icon, text) => { const li = h('li'); li.append(h('span', 'icon', icon), h('span', '', text)); ul.append(li); };
-    if (c.meals != null) line('🍚', `${c.meals}끼를 기록했어요`);
-    if (c.topMenu) line('🥇', `가장 많이 먹은 메뉴는 ‘${c.topMenu}’`);
-    if (c.firsts != null) line('✨', `처음 먹어 본 메뉴 ${c.firsts}개`);
-    if (c.spent != null) line('💰', `총지출 ${money(c.spent)}`);
-    if (c.topMonth) line('📅', `가장 많이 쓴 달은 ${c.topMonth}월`);
-    add(h('h3', '', `${year}년 한눈에`), ul);
   }
   return box;
 }
@@ -142,4 +104,4 @@ function renderRecapBanner() {
   b.replaceChildren(go, x);
 }
 
-$('recapBtn').addEventListener('click', () => openRecap(undefined, 'budget')); // 가계부에서 여니 가계부 탭부터
+$('recapBtn').addEventListener('click', () => openRecap());
