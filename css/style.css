@@ -946,6 +946,9 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   /* 위 줄: 보기 4개 + 로그인·테마·설정이 360px 폰 한 줄에 들어가게 */
   .tools { flex-grow: 1; gap: 4px; } /* 제목이 없으니 보기 탭은 왼쪽, 로그인·테마·설정은 오른쪽 끝 */
   #viewSeg { margin-right: auto; }
+  /* 모든 보기에서 맨 위 줄 = 보기 탭·로그인·테마·설정. 식단·가계부의 달 넘기기, 노트 안의 ‹ 뒤로 가기는 그 아랫줄 */
+  .tools { order: -1; }
+  .nav { flex-basis: 100%; }
   body[data-view="notes"][data-page="list"] .nav, body[data-view="fridge"] .nav { display: none; } /* 빈 왼쪽 칸이 간격만 차지하지 않게 */
   .tools > .btn { padding-inline: 10px; }
   #viewSeg button { padding-inline: 6px; }
