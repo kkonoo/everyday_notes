@@ -1077,7 +1077,7 @@ div.src-row { cursor: default; }
 .src-sub textarea { margin-top: 0; }
 .src-line { margin: 8px 0 4px; border-top: 1px solid var(--line); }
 .cand-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 12px 0 6px; font-size: 13px; }
-.cand { margin: 2px 0 8px 20px; } /* 펼친 그룹의 칩 (그룹 제목 아래 들여쓰기) */
+.cand-sub { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 0 6px; padding-left: 10px; border-left: 2px solid var(--line); } /* 고른 종류 안: 분류 칩 → 메뉴 칩 */
 .cand button.off { text-decoration: line-through; opacity: .45; }
 .saved-lists { margin-bottom: 4px; }
 .play-side textarea { margin: 0 0 4px; }
