@@ -1022,15 +1022,15 @@ select.acct.none { border-style: dashed; color: var(--faint); }
   .grp-head .icon-btn, #menuList .menu-row .handle { visibility: visible; } /* 폰은 마우스를 올릴 수 없으니 늘 보이게 */
 }
 
-/* ---------- 전체 화면 페이지: 놀이 (play.js). 설정 맨 위 단추로 열고 위 탭·뒤로 가기로 닫음 ---------- */
+/* ---------- 전체 화면 페이지: 놀이 (play.js) · 결산 (recap.js). 설정 맨 위 단추로 열고 위 탭·뒤로 가기로 닫음 ---------- */
 .page-links { margin-top: 0; }
 .page-view { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 24px; }
-body[data-view="play"] .play-view { display: block; }
-body[data-view="play"] .nav { display: none; }
-body[data-view="play"] .topbar { justify-content: flex-end; }
+body[data-view="play"] .play-view, body[data-view="recap"] .recap-view { display: block; }
+body[data-view="play"] .nav, body[data-view="recap"] .nav { display: none; }
+body[data-view="play"] .topbar, body[data-view="recap"] .topbar { justify-content: flex-end; }
 .page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
 .page-head h2 { margin: 0 6px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.page-head .sound { margin-left: auto; }
+.page-head .head-end { margin-left: auto; }
 .stepper { display: inline-flex; align-items: center; padding: 1px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); }
 .stepper b { min-width: 26px; text-align: center; font-variant-numeric: tabular-nums; }
 .stepper .icon-btn:disabled { opacity: .3; cursor: default; }
@@ -1116,4 +1116,67 @@ svg.ladder { display: block; }
   .play-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .wheel-wrap { width: min(320px, 100%); }
   .src-row { padding-block: 3px; }
+}
+
+/* 결산 (recap.js): 카드 한 장씩. 그래프는 한 계열 = --accent, 막대 24px 이하·끝만 4px 둥글게, 숫자는 가장 큰 막대에만 */
+.year-select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 14px; }
+.recap-title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 10px; margin: 0 2px 12px; }
+.recap-title b { font-size: 17px; }
+.recap-empty { max-width: 520px; margin: 0 auto; color: var(--muted); text-align: center; }
+.recap-card {
+  max-width: 520px; min-height: 380px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px;
+  padding: 24px 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow);
+  touch-action: pan-y; user-select: none;
+}
+.recap-card.in-next { animation: rc-in-next .25s ease-out; }
+.recap-card.in-prev { animation: rc-in-prev .25s ease-out; }
+@keyframes rc-in-next { from { opacity: 0; transform: translateX(40px); } }
+@keyframes rc-in-prev { from { opacity: 0; transform: translateX(-40px); } }
+@media (prefers-reduced-motion: reduce) { .recap-card.in-next, .recap-card.in-prev { animation: none; } }
+.rc-tag { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); font-size: 12px; font-weight: 600; }
+.recap-card h3 { margin: 10px 0 0; font-size: 15px; font-weight: 600; color: var(--muted); }
+.rc-big { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; overflow-wrap: anywhere; }
+.rc-big.name { font-size: 34px; }
+.rc-sub { margin: 0; font-size: 14px; color: var(--muted); }
+.rc-vs { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; line-height: 1.5; }
+/* 가로 막대: 이름 | 막대 | 값 */
+.rc-bars { display: grid; grid-template-columns: minmax(0, max-content) minmax(40px, 1fr) auto; align-items: center; gap: 10px; margin-top: 16px; font-size: 14px; }
+.rc-bars .name { max-width: 9em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rc-bars .track { height: 12px; }
+.rc-bars .track i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--accent); }
+.rc-bars .val { text-align: right; font-weight: 600; white-space: nowrap; }
+.rc-bars .val small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+/* 세로 막대: 달마다 (–는 기록 없음) */
+.rc-cols { display: flex; margin: 14px 0 6px; padding-top: 20px; } /* 막대 사이는 막대 너비(24px 이하)로 띄움 */
+.rc-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.rc-col .area { position: relative; width: 100%; height: 150px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--line); }
+.rc-col .area i { display: block; width: min(24px, 70%); border-radius: 4px 4px 0 0; background: var(--accent); }
+.rc-col:hover .area i { filter: brightness(1.12); }
+.rc-none { padding-bottom: 3px; font-size: 12px; line-height: 1; color: var(--faint); }
+.rc-val { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.rc-lab { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rc-names { margin-top: 12px; }
+.rc-names span { padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px; font-size: 13px; }
+.rc-names .more { border-style: dashed; color: var(--muted); }
+.rc-summary { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 17px; font-weight: 600; }
+.rc-summary li { display: flex; align-items: baseline; gap: 10px; }
+/* 넘기기: ‹ 점 3 / 9 › */
+.recap-nav { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 520px; margin: 14px auto 0; }
+.recap-nav .icon-btn { width: 44px; height: 44px; border: 1px solid var(--line); background: var(--surface); font-size: 22px; }
+.recap-nav .icon-btn:disabled { opacity: .3; cursor: default; }
+.recap-dots { display: flex; flex-wrap: wrap; justify-content: center; }
+.recap-dots button { position: relative; width: 16px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer; }
+.recap-dots button::after { content: ""; position: absolute; left: 4px; top: 8px; width: 8px; height: 8px; border-radius: 4px; background: var(--line); }
+.recap-dots button.on { width: 28px; }
+.recap-dots button.on::after { width: 20px; background: var(--accent); }
+.recap-count { min-width: 40px; font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+/* 12/1 ~ 1/31 배너 */
+.recap-banner { display: flex; align-items: center; gap: 6px; margin: 0 24px 12px; padding: 4px 6px 4px 4px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: var(--accent-soft); }
+.banner-go { flex: 1; padding: 8px 10px; border: none; background: transparent; text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+@media (max-width: 900px) {
+  .recap-banner { margin: 0 12px 10px; }
+  .recap-card { min-height: 360px; padding: 20px 18px; }
+  .rc-big { font-size: 42px; }
+  .rc-big.name { font-size: 30px; }
 }

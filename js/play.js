@@ -65,7 +65,7 @@ function renderPlay() {
   const head = h('div', 'page-head'), tabs = h('div', 'seg'), back = button('‹', closePage, 'icon-btn');
   back.title = '돌아가기';
   tabs.append(...Object.entries(PLAY_TABS).map(([k, label]) => button(label, () => { setPlay({ tab: k }); render(); }, k === tab ? 'on' : '')));
-  const sound = button(o.sound ? '🔊 소리 켬' : '🔇 소리 끔', () => { setPlay({ sound: !o.sound }); render(); }, 'btn small sound');
+  const sound = button(o.sound ? '🔊 소리 켬' : '🔇 소리 끔', () => { setPlay({ sound: !o.sound }); render(); }, 'btn small head-end');
   sound.title = '룰렛·제비·사다리 소리 (기본 꺼짐)';
   head.append(back, h('h2', '', '🎲 놀이'), tabs, sound);
   $('playView').replaceChildren(head, { menu: menuPane, wheel: wheelPane, lots: lotsPane, ladder: ladderPane }[tab]());
