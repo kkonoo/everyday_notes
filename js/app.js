@@ -163,6 +163,7 @@ function render() {
   document.body.dataset.view = v;
   $('viewTitle').textContent = { fridge: '냉장고', play: '놀이', recap: '결산' }[v] || '노트';
   renderRecapBanner();
+  renderInstallBanner();
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === v));
   const a = document.activeElement;
   const keep = !focusNext && a && a.dataset && a.dataset.key ? { key: a.dataset.key, value: a.value, pos: a.selectionStart, end: a.selectionEnd } : null;
@@ -438,3 +439,26 @@ addEventListener('DOMContentLoaded', () => dbReady.then(render)); // notes.js·m
 
 // 앱 설치(PWA)·오프라인용. 파일을 더블클릭해서 연 경우(file://)엔 동작 안 함
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
+
+// 크롬·엣지가 설치할 수 있다고 알려 주면(안드로이드·PC, 이미 설치했으면 안 옴) 메인 화면 위에 '앱으로 설치하기' 배너.
+// ✕로 닫으면 이 기기에선 다시 안 띄우고 브라우저 기본 안내에 맡김. 아이폰은 이 알림이 없음 (공유 › 홈 화면에 추가)
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => {
+  if (prefs.installClosed) return;
+  e.preventDefault(); // 브라우저가 따로 띄우는 설치 안내 대신 배너로
+  installEvt = e;
+  renderInstallBanner();
+});
+addEventListener('appinstalled', () => { installEvt = null; renderInstallBanner(); });
+function renderInstallBanner() {
+  const b = $('installBanner');
+  b.hidden = page || !installEvt;
+  if (b.hidden) return;
+  const go = button('📲 살림노트 앱으로 설치하기', () => {
+    installEvt.prompt(); // 브라우저 설치 창. 한 번만 쓸 수 있음
+    installEvt = null;
+    renderInstallBanner();
+  }, 'banner-go');
+  const x = iconBtn('✕', '닫기 (이 기기에선 다시 안 떠요)', () => { prefs.installClosed = true; savePrefs(); installEvt = null; renderInstallBanner(); });
+  b.replaceChildren(go, x);
+}
