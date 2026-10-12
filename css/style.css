@@ -1155,6 +1155,7 @@ svg.ladder { display: block; }
 /* 12/1 ~ 1/31 배너 · 앱 설치 배너 (app.js) */
 .recap-banner, .install-banner { display: flex; align-items: center; gap: 6px; margin: 0 24px 12px; padding: 4px 6px 4px 4px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: var(--accent-soft); }
 .banner-go { flex: 1; padding: 8px 10px; border: none; background: transparent; text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; }
+.install-banner .banner-go { word-break: keep-all; } /* 아이폰 안내가 두 줄일 때 낱말 중간에서 안 끊기게 */
 
 @media (max-width: 900px) {
   .recap-banner, .install-banner { margin: 0 12px 10px; }

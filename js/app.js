@@ -441,8 +441,10 @@ addEventListener('DOMContentLoaded', () => dbReady.then(render)); // notes.js·m
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
 
 // 크롬·엣지가 설치할 수 있다고 알려 주면(안드로이드·PC, 이미 설치했으면 안 옴) 메인 화면 위에 '앱으로 설치하기' 배너.
-// ✕로 닫으면 이 기기에선 다시 안 띄우고 브라우저 기본 안내에 맡김. 아이폰은 이 알림이 없음 (공유 › 홈 화면에 추가)
+// 아이폰은 이 알림이 없어서 '공유 › 홈 화면에 추가' 안내를 대신 띄움 (홈 화면에서 열었거나, 홈 화면에 추가가 없는 카톡 등 앱 안 브라우저면 안 띄움)
+// ✕로 닫으면 이 기기에선 다시 안 띄우고 브라우저 기본 안내에 맡김
 let installEvt = null;
+const iosGuide = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari\//.test(navigator.userAgent) && !navigator.standalone;
 addEventListener('beforeinstallprompt', e => {
   if (prefs.installClosed) return;
   e.preventDefault(); // 브라우저가 따로 띄우는 설치 안내 대신 배너로
@@ -452,13 +454,13 @@ addEventListener('beforeinstallprompt', e => {
 addEventListener('appinstalled', () => { installEvt = null; renderInstallBanner(); });
 function renderInstallBanner() {
   const b = $('installBanner');
-  b.hidden = page || !installEvt;
+  b.hidden = page || prefs.installClosed || !(installEvt || iosGuide);
   if (b.hidden) return;
-  const go = button('📲 살림노트 앱으로 설치하기', () => {
+  const go = installEvt ? button('📲 살림노트 앱으로 설치하기', () => {
     installEvt.prompt(); // 브라우저 설치 창. 한 번만 쓸 수 있음
     installEvt = null;
     renderInstallBanner();
-  }, 'banner-go');
+  }, 'banner-go') : h('span', 'banner-go', '📲 앱으로 쓰려면 공유 › ‘홈 화면에 추가’ (공유가 안 보이면 ··· 안에)');
   const x = iconBtn('✕', '닫기 (이 기기에선 다시 안 떠요)', () => { prefs.installClosed = true; savePrefs(); installEvt = null; renderInstallBanner(); });
   b.replaceChildren(go, x);
 }
