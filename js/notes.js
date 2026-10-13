@@ -714,3 +714,35 @@ $('newNoteForm').addEventListener('submit', e => {
   if (n.type !== 'memo') focusNext = `add:${n.id}:`;
   save();
 });
+
+// 설정 › 노트 불러오기: 지금 데이터는 그대로 두고 노트 하나를 더함 (백업 불러오기는 전체를 바꿈)
+// { title, type: 'list'|'check'|'shop' (없으면 list), sections: [{ name, items: [{ text, memo }] }] }   memo = 목록 항목의 내용
+$('noteFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let d;
+  try { d = JSON.parse(await file.text()); } catch { alert('읽을 수 없는 파일이에요.'); return; }
+  if (!d || !Array.isArray(d.sections)) {
+    alert(d && Array.isArray(d.recs) ? '전체 백업 파일이에요. 설정 › 백업 › 불러오기로 열어요.' : '노트 파일이 아니에요. (sections가 없어요)');
+    return;
+  }
+  const n = newRec('note', { type: ['shop', 'check', 'list'].includes(d.type) ? d.type : 'list', cat: null,
+    title: String(d.title || file.name.replace(/\.json$/i, '')), sections: [], text: '', order: nextOrder(notes()) });
+  db.recs.push(n);
+  for (const s of d.sections) {
+    const sec = { id: uid(), name: String(s.name || '묶음') };
+    n.sections.push(sec);
+    (s.items || []).filter(it => it && it.text).forEach((it, k) => db.recs.push(newRec('entry', {
+      note: n.id, section: sec.id, text: String(it.text), done: false, need: false, order: k, ...(it.memo ? { memo: String(it.memo) } : {}) })));
+  }
+  prefs.note = n.id;
+  prefs.view = 'notes'; // 다른 탭에서 설정을 열었어도 더한 노트가 보이게
+  page = null;
+  savePrefs();
+  editing = false;
+  notePage = true;
+  $('settings').close();
+  save();
+  toast(`‘${n.title}’ 노트를 더했어요`);
+});
