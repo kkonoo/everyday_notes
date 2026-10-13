@@ -482,6 +482,11 @@
     <label class="btn">노트 불러오기<input type="file" id="noteFile" accept=".json" hidden></label>
     <span class="hint">.json 파일로 노트 하나를 더해요. 지금 데이터는 그대로예요.</span>
   </div>
+  <div class="row">
+    <label for="aiKey">API 키</label>
+    <input type="password" id="aiKey" class="text-input" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+    <span class="hint">메모 노트의 ‘정리’ 버튼(Claude)에 써요. console.anthropic.com에서 만든 키, 이 기기에만 저장돼요.</span>
+  </div>
 
   <h2>식단</h2>
   <div class="row">
@@ -513,6 +518,17 @@
     <label class="btn">불러오기<input type="file" id="importFile" accept=".json" hidden></label>
   </div>
   <div class="dialog-actions"><span class="spacer"></span><button class="btn primary" id="closeSettingsBtn">닫기</button></div>
+</dialog>
+
+<dialog id="tidy">
+  <h2>정리한 메모</h2>
+  <p class="hint">고칠 곳은 고친 뒤 ‘바꾸기’를 누르면 메모가 이 글로 바뀌어요.</p>
+  <textarea id="tidyText"></textarea>
+  <div class="dialog-actions">
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="tidyCancel">취소</button>
+    <button type="button" class="btn primary" id="tidyApply">바꾸기</button>
+  </div>
 </dialog>
 
 <div class="toast" id="toast"></div>

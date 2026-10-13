@@ -181,6 +181,12 @@ function noteHead(n) {
       }));
     }
   }
+  if (n.type === 'memo' && !editing) {
+    const b = button(tidying === n.id ? '정리 중…' : '정리', () => tidyMemo(n));
+    b.disabled = tidying === n.id;
+    b.title = 'Claude로 메모 정리하기 (설정 › 노트의 API 키)';
+    top.append(b);
+  }
   top.append(button(editing ? '완료' : '편집', () => { editing = !editing; render(); }, editing ? 'btn primary' : 'btn'));
   head.append(top);
   if (editing) head.append(editBar(n));
@@ -399,6 +405,75 @@ function memoBody(n) {
   ta.addEventListener('blur', flush);
   return ta;
 }
+
+// 메모 정리: 설정 › 노트의 API 키(이 기기에만, prefs.aiKey)로 브라우저에서 Claude API를 바로 부름 → 창에서 보고 '바꾸기'
+const TIDY_PROMPT = `사용자가 메모 앱에 대충 적어 둔 메모를 깔끔하게 정리해요.
+- 내용을 빼거나 지어내지 말아요. 사실·숫자·조건·주의사항은 그대로, 뜻이 애매한 곳(?)도 그대로 둬요.
+- 같은 주제끼리 모아 '## 제목' 줄과 '- ' 목록으로 나눠요. 순서가 있는 단계는 1. 2. 3.
+- 맞춤법·띄어쓰기를 고치고 짧게 써요. 메모에 쓴 용어(영어 포함)는 바꾸지 말아요.
+- 앱이 글자를 그대로 보여 줘요: **굵게**, 표, 코드 블록은 쓰지 말아요.
+- 정리한 메모 글만 답해요. 앞뒤에 설명을 붙이지 말아요.`;
+let tidying = null, tidyNote = null; // 정리 중인 노트 id, 창에 띄운 정리본의 노트
+async function tidyMemo(n) {
+  if (tidying) return;
+  if (!prefs.aiKey) {
+    toast('설정 › 노트에 Claude API 키를 넣어요', 3000);
+    $('settingsBtn').click();
+    $('aiKey').focus();
+    return;
+  }
+  if (!(n.text || '').trim()) { toast('정리할 내용이 없어요'); return; }
+  tidying = n.id;
+  render();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': prefs.aiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'server-side-fallback-2026-07-01', // fallbacks: 거절되면 서버가 다른 모델로 다시
+        'anthropic-dangerous-direct-browser-access': 'true', // 서버 없이 브라우저에서 바로 (키는 이 기기에만)
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-5-5',
+        max_tokens: 16000,
+        output_config: { effort: 'low' }, // 버튼 누르고 기다리는 일이라 빠르게
+        fallbacks: 'default',
+        system: TIDY_PROMPT,
+        messages: [{ role: 'user', content: `제목: ${n.title}\n\n${n.text}` }],
+      }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(res.status === 401 ? 'API 키가 맞지 않아요. 설정 › 노트에서 확인해요.' : (d.error && d.error.message) || `HTTP ${res.status}`);
+    if (d.stop_reason === 'refusal') throw new Error('Claude가 이 메모는 정리하지 않았어요.');
+    const text = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+    if (!text) throw new Error('받은 글이 없어요.');
+    tidyNote = n;
+    $('tidyText').value = text;
+    $('tidy').showModal();
+    if (d.stop_reason === 'max_tokens') toast('메모가 길어서 끝이 잘렸어요', 3000);
+  } catch (e) {
+    alert(`정리하지 못했어요: ${e instanceof TypeError ? '연결이 안 돼요. 인터넷을 확인해요.' : e.message}`);
+  } finally {
+    tidying = null;
+    render();
+  }
+}
+$('tidyApply').addEventListener('click', () => {
+  tidyNote.text = $('tidyText').value;
+  touch(tidyNote);
+  $('tidy').close();
+  save();
+  toast('메모를 정리했어요');
+});
+$('tidyCancel').addEventListener('click', () => $('tidy').close());
+$('aiKey').value = prefs.aiKey || '';
+$('aiKey').addEventListener('change', e => {
+  const v = e.target.value.trim();
+  if (v) prefs.aiKey = v; else delete prefs.aiKey;
+  savePrefs();
+});
 
 // ---------- 장보기·체크리스트 ----------
 // mode: need(살 것) / all(장보기 전체) / check(체크리스트) / edit(편집)
