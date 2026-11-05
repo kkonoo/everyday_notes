@@ -343,7 +343,9 @@ input.sec-name:focus { border-bottom-color: var(--accent); }
 .entry.memo-item { flex-wrap: wrap; row-gap: 0; }
 .memo-item .fold { width: 12px; color: var(--faint); font-size: 12px; transform: rotate(-90deg); transition: transform .15s; }
 .memo-item.open .fold { transform: none; }
-.memo-item.open .text { font-weight: 600; }
+/* 펼친 항목: 제목은 글자 폭만 (누르면 이름 고치기), 옆 빈 곳은 누르면 접기 */
+.memo-item.open .text { font-weight: 600; flex: 0 1 auto; cursor: text; }
+.memo-item.open .entry-tools { margin-left: auto; }
 .memo-preview { flex: 0 1 45%; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; color: var(--muted); }
 .entry-memo { flex: 1 0 100%; margin: 6px 0 4px; cursor: text; user-select: text; }
 

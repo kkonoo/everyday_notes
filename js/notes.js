@@ -575,12 +575,14 @@ function entryRow(n, e, mode) {
     sortable(handle, li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before));
     return li;
   }
-  // 목록 = 눌러서 내용 펴기·접기, 전체(장보기) = 눌러서 살 것 표시, 그 밖 = 눌러서 체크
+  // 목록 = 눌러서 내용 펴기·접기 (펼친 항목은 제목을 누르면 이름 고치기, 옆 빈 곳·▾는 접기), 전체(장보기) = 눌러서 살 것 표시, 그 밖 = 눌러서 체크
   const shopAll = mode === 'all', isList = mode === 'list', open = isList && openMemos.has(e.id);
   if (isList) {
     li.classList.add('memo-item');
     li.classList.toggle('open', open);
-    li.append(h('span', 'fold', '▾'), h('span', 'text', e.text));
+    const text = h('span', 'text', e.text);
+    if (open) text.title = '눌러서 이름 바꾸기';
+    li.append(h('span', 'fold', '▾'), text);
     if (!open && e.memo) li.append(h('span', 'memo-preview', e.memo.split('\n').find(l => l.trim()) || ''));
   } else {
     li.classList.toggle(shopAll ? 'need' : 'done', !!(shopAll ? e.need : e.done));
@@ -608,9 +610,10 @@ function entryRow(n, e, mode) {
     addEventListener('pointerdown', close, true);
     if (mode !== 'need') dragRow(li, '.entry, .sec-head', (t, before) => dropEntry(n, e, t, before), start);
   });
-  li.addEventListener('click', () => {
+  li.addEventListener('click', ev => {
     if (li.classList.contains('editing')) return;
     if (isList) {
+      if (open && ev.target.closest('.text')) { editText(li, e); return; }
       if (open) openMemos.delete(e.id); else openMemos.add(e.id);
       render();
       return;
