@@ -253,8 +253,26 @@ function editBar(n) {
       save();
     }));
   }
-  bar.append(h('span', 'spacer'), button('복사', () => copyNote(n)), button('노트 삭제', () => deleteNote(n), 'btn danger'));
+  bar.append(h('span', 'spacer'));
+  if (n.type !== 'memo') {
+    const b = button('파일 저장', () => saveNoteFile(n));
+    b.title = '.json 파일로 받아요. 고쳐서 설정 › 노트 › 노트 불러오기로 다시 올려요';
+    bar.append(b);
+  }
+  bar.append(button('복사', () => copyNote(n)), button('노트 삭제', () => deleteNote(n), 'btn danger'));
   return bar;
+}
+// 노트 하나를 노트 불러오기와 같은 모양의 .json으로 (묶음 없는 항목은 맨 위 items). 체크·살 것 표시는 안 넣음
+function saveNoteFile(n) {
+  const items = list => list.map(e => ({ text: e.text, ...(e.memo ? { memo: e.memo } : {}) }));
+  const loose = entriesIn(n, null);
+  const d = { title: n.title, type: n.type, ...(loose.length ? { items: items(loose) } : {}),
+    sections: n.sections.map(s => ({ name: s.name, items: items(entriesIn(n, s.id)) })) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+  a.download = `${(n.title || '노트').replace(/[\\/:*?"<>|]/g, '_')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 // 설정 › 노트 › 카테고리 편집: 색(점을 누르면 고르기)·이름 바꾸기·지우기 (지우면 그 노트들은 카테고리 없음)
 let pickingCat = null, addingColor = false; // 색 고르는 중인 카테고리, 팔레트의 ＋(색 더하기)를 펼쳤는지
@@ -794,25 +812,28 @@ $('newNoteForm').addEventListener('submit', e => {
 });
 
 // 설정 › 노트 불러오기: 지금 데이터는 그대로 두고 노트 하나를 더함 (백업 불러오기는 전체를 바꿈)
-// { title, type: 'list'|'check'|'shop' (없으면 list), sections: [{ name, items: [{ text, memo }] }] }   memo = 목록 항목의 내용
+// { title, type: 'list'|'check'|'shop' (없으면 list), items: [{ text, memo }] (묶음 없는 항목, 없어도 됨), sections: [{ name, items: [...] }] }
+// memo = 목록 항목의 내용. 노트 편집 › 파일 저장이 이 모양으로 내려받음
 $('noteFile').addEventListener('change', async e => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
   let d;
   try { d = JSON.parse(await file.text()); } catch { alert('읽을 수 없는 파일이에요.'); return; }
-  if (!d || !Array.isArray(d.sections)) {
+  if (!d || !(Array.isArray(d.sections) || Array.isArray(d.items))) {
     alert(d && Array.isArray(d.recs) ? '전체 백업 파일이에요. 설정 › 백업 › 불러오기로 열어요.' : '노트 파일이 아니에요. (sections가 없어요)');
     return;
   }
   const n = newRec('note', { type: ['shop', 'check', 'list'].includes(d.type) ? d.type : 'list', cat: null,
     title: String(d.title || file.name.replace(/\.json$/i, '')), sections: [], text: '', order: nextOrder(notes()) });
   db.recs.push(n);
-  for (const s of d.sections) {
+  const addItems = (items, section) => (items || []).filter(it => it && it.text).forEach((it, k) => db.recs.push(newRec('entry', {
+    note: n.id, section, text: String(it.text), done: false, need: false, order: k, ...(it.memo ? { memo: String(it.memo) } : {}) })));
+  addItems(d.items, null);
+  for (const s of d.sections || []) {
     const sec = { id: uid(), name: String(s.name || '묶음') };
     n.sections.push(sec);
-    (s.items || []).filter(it => it && it.text).forEach((it, k) => db.recs.push(newRec('entry', {
-      note: n.id, section: sec.id, text: String(it.text), done: false, need: false, order: k, ...(it.memo ? { memo: String(it.memo) } : {}) })));
+    addItems(s.items, sec.id);
   }
   prefs.note = n.id;
   prefs.view = 'notes'; // 다른 탭에서 설정을 열었어도 더한 노트가 보이게
