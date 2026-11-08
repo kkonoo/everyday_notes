@@ -262,11 +262,11 @@ function editBar(n) {
   bar.append(button('복사', () => copyNote(n)), button('노트 삭제', () => deleteNote(n), 'btn danger'));
   return bar;
 }
-// 노트 하나를 노트 불러오기와 같은 모양의 .json으로 (묶음 없는 항목은 맨 위 items). 체크·살 것 표시는 안 넣음
+// 노트 하나를 노트 불러오기와 같은 모양의 .json으로 (묶음 없는 항목은 맨 위 items, id = 다시 불러올 때 이 노트를 바꾸기). 체크·살 것 표시는 안 넣음
 function saveNoteFile(n) {
   const items = list => list.map(e => ({ text: e.text, ...(e.memo ? { memo: e.memo } : {}) }));
   const loose = entriesIn(n, null);
-  const d = { title: n.title, type: n.type, ...(loose.length ? { items: items(loose) } : {}),
+  const d = { id: n.id, title: n.title, type: n.type, ...(loose.length ? { items: items(loose) } : {}),
     sections: n.sections.map(s => ({ name: s.name, items: items(entriesIn(n, s.id)) })) };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
@@ -812,7 +812,7 @@ $('newNoteForm').addEventListener('submit', e => {
 });
 
 // 설정 › 노트 불러오기: 지금 데이터는 그대로 두고 노트 하나를 더함 (백업 불러오기는 전체를 바꿈)
-// { title, type: 'list'|'check'|'shop' (없으면 list), items: [{ text, memo }] (묶음 없는 항목, 없어도 됨), sections: [{ name, items: [...] }] }
+// { id (있으면 그 노트를 바꿀지 물음), title, type: 'list'|'check'|'shop' (없으면 list), items: [{ text, memo }] (묶음 없는 항목, 없어도 됨), sections: [{ name, items: [...] }] }
 // memo = 목록 항목의 내용. 노트 편집 › 파일 저장이 이 모양으로 내려받음
 $('noteFile').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -824,9 +824,18 @@ $('noteFile').addEventListener('change', async e => {
     alert(d && Array.isArray(d.recs) ? '전체 백업 파일이에요. 설정 › 백업 › 불러오기로 열어요.' : '노트 파일이 아니에요. (sections가 없어요)');
     return;
   }
-  const n = newRec('note', { type: ['shop', 'check', 'list'].includes(d.type) ? d.type : 'list', cat: null,
-    title: String(d.title || file.name.replace(/\.json$/i, '')), sections: [], text: '', order: nextOrder(notes()) });
-  db.recs.push(n);
+  const type = ['shop', 'check', 'list'].includes(d.type) ? d.type : 'list', title = String(d.title || file.name.replace(/\.json$/i, ''));
+  // 파일 저장으로 받은 파일(id)이고 그 노트가 아직 있으면 그 노트를 바꿀지 물음 (카테고리·순서는 그대로). 취소하면 새 노트로
+  let n = d.id && notes().find(x => x.id === d.id);
+  const replace = !!n && confirm(`‘${n.title}’ 노트를 이 파일 내용으로 바꿀까요?\n체크·살 것 표시는 풀려요. 취소하면 새 노트로 더해요.`);
+  if (replace) {
+    entriesOf(n).forEach(remove);
+    Object.assign(n, { type, title, sections: [] });
+    touch(n);
+  } else {
+    n = newRec('note', { type, cat: null, title, sections: [], text: '', order: nextOrder(notes()) });
+    db.recs.push(n);
+  }
   const addItems = (items, section) => (items || []).filter(it => it && it.text).forEach((it, k) => db.recs.push(newRec('entry', {
     note: n.id, section, text: String(it.text), done: false, need: false, order: k, ...(it.memo ? { memo: String(it.memo) } : {}) })));
   addItems(d.items, null);
@@ -843,5 +852,5 @@ $('noteFile').addEventListener('change', async e => {
   notePage = true;
   $('settings').close();
   save();
-  toast(`‘${n.title}’ 노트를 더했어요`);
+  toast(`‘${n.title}’ 노트를 ${replace ? '바꿨어요' : '더했어요'}`);
 });
