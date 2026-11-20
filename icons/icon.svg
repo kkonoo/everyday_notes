@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 앱 아이콘 원본: 둥근 타일(모서리 114) 위 흰 심볼, 가운데 288px 안. PNG는 tools/make-icons.py로 그려요 -->
+  <rect width="512" height="512" rx="114" fill="#383E45"/>
+  <path d="M112 140 a28 28 0 0 1 28 -28 H262 L330 180 V374 a28 28 0 0 1 -28 28 H140 a28 28 0 0 1 -28 -28 Z" fill="#FFFFFF"/>
+  <path d="M262 112 V156 a24 24 0 0 0 24 24 H330" fill="none" stroke="#383E45" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M158 220 H284 M158 274 H284 M158 328 H226" stroke="#383E45" stroke-width="22" stroke-linecap="round"/>
+  <g transform="translate(336 268) rotate(35)">
+  <path d="M-30 -140 H30 V80 L0 140 L-30 80 Z" fill="#FFFFFF" stroke="#383E45" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M-30 -98 H30 M-30 80 H30" stroke="#383E45" stroke-width="12"/>
+  <path d="M-12 114.8 L0 138 L12 114.8 Z" fill="#383E45"/>
+</g>
+</svg>
